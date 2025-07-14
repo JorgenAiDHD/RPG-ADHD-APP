@@ -1,0 +1,356 @@
+import { useState, useRef, useEffect } from 'react';
+import { useGame } from '../context/GameContext';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/card';
+import { Send, Loader, Brain } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+/**
+ * AICompanion Component
+ * 
+ * A local AI assistant that processes user commands and dispatches actions to the GameContext.
+ * Uses the aiCompanion utility for natural language processing of commands.
+ */
+const AICompanion = () => {
+  const { state, actions } = useGame();
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [companionResponse, setCompanionResponse] = useState<string | null>(null);
+  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Check server status on component mount
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      try {
+        await axios.get('http://localhost:3001/status');
+        setServerStatus('connected');
+      } catch (err) {
+        console.error("Error connecting to server:", err);
+        setServerStatus('error');
+      }
+    };
+    
+    checkServerStatus();
+  }, []);
+
+  // Type definition for function calls from Gemini API is handled by the response
+
+  // Process the user's command via the backend server
+  const processCommand = async () => {
+    if (!input.trim()) return;
+    
+    setIsLoading(true);
+    setCompanionResponse(null);
+    
+    try {
+      // Send user message to the backend proxy server along with current game state
+      console.log("Sending to server with state:", state);
+      const response = await axios.post('http://localhost:3001/chat', {
+        message: input,
+        gameState: state
+      });
+      
+      const responseData = response.data;
+      console.log("Response from server:", responseData);
+      
+      // Handle function call response
+      if (responseData.functionCall) {
+        const functionCall = responseData.functionCall;
+        const functionName = functionCall.name;
+        const functionArgs = functionCall.arguments;
+        
+        console.log(`Executing function: ${functionName}`, functionArgs);
+        
+        // Execute function based on name returned from backend
+        switch (functionName) {
+          case 'add_quest':
+            // Log all arguments to debug
+            console.log("Adding quest with args:", functionArgs);
+            
+            // Create quest with all provided arguments
+            actions.addQuest({
+              id: crypto.randomUUID(),
+              title: functionArgs.title,
+              description: functionArgs.description || `Complete "${functionArgs.title}"`,
+              type: functionArgs.type || 'side',
+              xpReward: parseInt(functionArgs.xpReward) || 20, // Ensure proper number conversion
+              priority: functionArgs.priority || 'medium',
+              status: 'active',
+              createdDate: new Date(),
+              estimatedTime: parseInt(functionArgs.estimatedTime) || 30,
+              difficultyLevel: (parseInt(functionArgs.difficultyLevel) || 3) as (1|2|3|4|5),
+              energyRequired: functionArgs.energyRequired || 'medium',
+              anxietyLevel: functionArgs.anxietyLevel || 'comfortable',
+              tags: functionArgs.tags || ['general']
+            });
+            
+            setCompanionResponse(`✨ Excellent! I've added a new quest: **${functionArgs.title}**. 
+This is a ${functionArgs.priority || 'medium'} priority ${functionArgs.type || 'side'} quest${functionArgs.xpReward ? ` worth ${functionArgs.xpReward} XP` : ''}. Good luck on your journey!`);
+            
+            toast.success(`Added new quest: ${functionArgs.title}`);
+            break;
+            
+          case 'complete_quest':
+            // Find quest by title
+            const questToComplete = state.quests.find(q => 
+              q.title.toLowerCase().includes(functionArgs.questTitle.toLowerCase()) || 
+              functionArgs.questTitle.toLowerCase().includes(q.title.toLowerCase())
+            );
+            
+            if (questToComplete) {
+              actions.completeQuest(questToComplete.id);
+              setCompanionResponse(`🎉 Congratulations! You've completed the quest: **${questToComplete.title}**. Keep up the great work!`);
+              toast.success(`Completed quest: ${questToComplete.title}`);
+            } else {
+              setCompanionResponse(`I couldn't find a quest matching "${functionArgs.questTitle}". Please check the quest name and try again.`);
+            }
+            break;
+            
+          case 'log_health_activity':
+            console.log("Logging health activity with args:", functionArgs);
+            
+            const activityId = `custom_${Date.now()}`;
+            // Create and add new health activity
+            const newActivity = {
+              id: activityId,
+              name: functionArgs.activityName,
+              healthChange: parseInt(functionArgs.healthChange) || 10, // Ensure proper number conversion
+              category: functionArgs.category || 'physical',
+              duration: parseInt(functionArgs.duration) || 30,
+              description: functionArgs.description || `Custom activity: ${functionArgs.activityName}`,
+              icon: functionArgs.icon || '💪',
+            };
+            
+            actions.addHealthActivity(newActivity);
+            actions.updateHealth(newActivity.healthChange, newActivity);
+            
+            const healthChangeText = newActivity.healthChange > 0 ? 
+              `gained ${newActivity.healthChange} health points` : 
+              `recorded ${Math.abs(newActivity.healthChange)} health impact`;
+              
+            setCompanionResponse(`❤️ Health update: You've ${healthChangeText} from **${functionArgs.activityName}**. Taking care of yourself is an important part of your hero's journey!`);
+            toast.success(`Logged health activity: ${functionArgs.activityName}`);
+            break;
+            
+          case 'set_main_quest':
+            console.log("Setting main quest with args:", functionArgs);
+            
+            // Update main quest
+            actions.setMainQuest(functionArgs.title, functionArgs.description);
+            
+            // Check if this is ADHD-related and customize response
+            if (functionArgs.title.toLowerCase().includes("focus") || 
+                input.toLowerCase().includes("adhd") || 
+                input.toLowerCase().includes("focus") ||
+                (functionArgs.description && functionArgs.description.toLowerCase().includes("adhd"))) {
+              setCompanionResponse(`🌟 I've updated your main quest to be more ADHD-friendly: **${functionArgs.title}**. ${functionArgs.description} Remember that breaking tasks into smaller steps and celebrating small wins is key!`);
+            } else {
+              setCompanionResponse(`🌟 I've updated your main quest to: **${functionArgs.title}**. This will be your guiding star on your journey. Focus on this epic mission!`);
+            }
+            toast.success(`Updated main quest to: ${functionArgs.title}`);
+            break;
+            
+          case 'set_season_name':
+            console.log("Setting season name with args:", functionArgs);
+            
+            // Update season using the updateSeason action
+            const updatedSeason = {
+              ...state.currentSeason,
+              title: functionArgs.name
+            };
+            actions.updateSeason(updatedSeason);
+            setCompanionResponse(`🏆 A new season begins! I've updated your season name to: **${functionArgs.name}**. May this season bring great adventures and accomplishments!`);
+            toast.success(`Updated season name: ${functionArgs.name}`);
+            break;
+            
+          case 'get_player_status':
+            const activeQuests = state.quests.filter(q => q.status === 'active');
+            const completedQuests = state.quests.filter(q => q.status === 'completed');
+            
+            setCompanionResponse(`
+📊 **Status Update**
+
+You're currently **Level ${state.player.level}** with ${state.player.xp}/${state.player.xpToNextLevel} XP.
+Health: ${state.healthBar.current}/${state.healthBar.maximum}
+Current streak: ${state.player.currentStreak} days
+Active quests: ${activeQuests.length}
+Completed quests: ${completedQuests.length}
+
+Your main quest is: "${state.mainQuest.title}"
+${state.bonusXPActive ? `\n⚡ You have a ${state.bonusXPActive.multiplier}x XP bonus active until ${new Date(state.bonusXPActive.expiresAt).toLocaleTimeString()}!` : ''}
+
+Is there anything specific you'd like to work on today?`);
+            break;
+            
+          case 'suggestNextTask':
+            // Priorytetyzacja questów
+            const urgentQuests = state.quests.filter(q => q.status === 'active' && q.priority === 'urgent');
+            const highPriorityQuests = state.quests.filter(q => q.status === 'active' && q.priority === 'high');
+            const lowEnergyQuests = state.quests.filter(q => q.status === 'active' && q.energyRequired === 'low');
+            const allActiveQuests = state.quests.filter(q => q.status === 'active');
+            
+            let recommendation = '';
+            
+            if (urgentQuests.length > 0) {
+              recommendation = `I recommend tackling **"${urgentQuests[0].title}"** as it's marked urgent.`;
+            } else if (highPriorityQuests.length > 0) {
+              recommendation = `A good next step would be **"${highPriorityQuests[0].title}"** as it's high priority.`;
+            } else if (lowEnergyQuests.length > 0) {
+              recommendation = `If you're looking for something lighter, try **"${lowEnergyQuests[0].title}"** which requires low energy.`;
+            } else if (allActiveQuests.length > 0) {
+              recommendation = `You could work on **"${allActiveQuests[0].title}"** next.`;
+            } else {
+              recommendation = `You don't have any active quests right now. Would you like me to create one for you?`;
+            }
+            
+            setCompanionResponse(`🧭 ${recommendation}\n\nRemember, completing quests will earn you XP and help you level up!`);
+            break;
+            
+          case 'provideHelp':
+            setCompanionResponse(`
+🤖 **AI Companion Help**
+
+I can assist you with managing your quests and tracking your progress. Here are some things you can ask me to do:
+
+• **Add a quest** - "Add a quest called 'Read for 30 minutes' with priority high"
+• **Complete a quest** - "Mark the reading quest as complete"
+• **Log health activity** - "Log health activity 'Morning meditation'"
+• **Set main quest** - "Set main quest to 'Complete my project by Friday'"
+• **Rewrite main quest** - "Rewrite main quest so it suits more for ADHD mind"
+• **Activate bonus XP** - "Activate 2x bonus XP for focused work session"
+
+You can also ask me:
+• "How am I doing?" for a status update
+• "What should I do next?" for quest recommendations
+• "Tell me about my achievements" for achievement progress
+
+How can I assist you today?`);
+            break;
+            
+          default:
+            // Unknown function
+            console.warn("Unknown function call:", functionName);
+            setCompanionResponse("I understood your request, but I'm not sure how to handle it yet. Let me know if you'd like me to try something else!");
+            break;
+        }
+      } 
+      // Handle text response
+      else if (responseData.text) {
+        setCompanionResponse(responseData.text);
+      } 
+      // Handle unexpected response
+      else {
+        setCompanionResponse("I received an unexpected response from the server. Please try again later.");
+      }
+      
+    } catch (err) {
+      console.error("Error processing command:", err);
+      setCompanionResponse("I encountered an error while processing your request. Please make sure the server is running at http://localhost:3001 and try again.");
+    } finally {
+      setIsLoading(false);
+      setInput('');
+      
+      // Focus back on the textarea
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  };
+
+  // Handle command submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    processCommand();
+  };
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      processCommand();
+    }
+  };
+
+  return (
+    <Card className="bg-gradient-to-br from-indigo-900/90 to-zinc-900 border-indigo-700 text-white shadow-lg shadow-indigo-900/30 w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl font-bold text-indigo-300">
+          <Brain className="h-6 w-6 text-indigo-400" />
+          AI Companion (Gemini)
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {companionResponse && (
+          <div className="bg-indigo-950/50 border border-indigo-800 rounded-lg p-4 mb-4 text-indigo-100 whitespace-pre-wrap">
+            {companionResponse}
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter a command or ask a question (e.g., 'add quest Read a book', 'how am I doing?')"
+            className="min-h-24 bg-indigo-950/30 border-indigo-700 text-white placeholder:text-indigo-400/70 resize-none"
+            disabled={isLoading}
+          />
+          
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-indigo-300">
+              Press Enter to submit, Shift+Enter for new line
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
+              disabled={isLoading || !input.trim()}
+            >
+              {isLoading ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" /> 
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" /> 
+                  Submit
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+      
+      <CardFooter className="border-t border-indigo-800/50 pt-4 text-xs text-indigo-400/80">
+        <div className="w-full">
+          <p className="mb-2">
+            Your AI Companion is powered by Google Gemini and understands a wide range of natural language requests.
+            Try asking for help, status updates, or managing your quests and activities.
+          </p>
+          <div className="flex items-center justify-end">
+            <div className={`flex items-center ${
+              serverStatus === 'connected' ? 'text-green-400' : 
+              serverStatus === 'error' ? 'text-red-400' : 'text-yellow-400'
+            }`}>
+              <div className={`w-2 h-2 rounded-full mr-2 ${
+                serverStatus === 'connected' ? 'bg-green-400' : 
+                serverStatus === 'error' ? 'bg-red-400' : 'bg-yellow-400'
+              }`}></div>
+              {serverStatus === 'connected' ? 'Server connected' : 
+               serverStatus === 'error' ? 'Server disconnected' : 'Checking connection...'}
+            </div>
+          </div>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+};
+
+export default AICompanion;

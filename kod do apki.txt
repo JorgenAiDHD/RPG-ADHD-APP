@@ -1,0 +1,3938 @@
+Gemini apiKey AIzaSyDGoSHYjr5ez_pB-vrWBipWmymTu3MPZPg
+
+// Główny plik aplikacji React, zawierający wszystkie komponenty i logikę.
+
+import React, { useState, useEffect, useContext, useReducer, createContext, ReactNode, useRef } from 'react';
+import { Toaster, toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Check, ChevronDown, ChevronUp, Plus, Edit, Save, Trash2, Settings, Zap, Heart, Trophy, Flame, Clock, Flag, TrendingUp, TrendingDown, Sword, CheckCircle, MessageSquare, Brain, Lightbulb, Sparkles, Eye, EyeOff, Info } from 'lucide-react'; // Dodano Info icon
+
+// Shadcn UI Imports - Te komponenty są importowane z zewnętrznych źródeł i nie powinny być modyfikowane.
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import *as DialogPrimitive from "@radix-ui/react-dialog";
+import *as LabelPrimitive from "@radix-ui/react-label";
+import *as SelectPrimitive from "@radix-ui/react-select";
+import *as ProgressPrimitive from "@radix-ui/react-progress";
+
+
+// src/types/game.ts
+// Definicje typów dla całej aplikacji.
+interface Player {
+  id: string;
+  name: string;
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  skillPoints: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastActiveDate: Date;
+}
+
+interface MainQuest {
+  title: string;
+  description: string;
+  isActive: boolean;
+}
+
+interface Season {
+  id: string;
+  title: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  progress: number;
+  goals: string[];
+}
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  type: 'main' | 'side' | 'daily' | 'weekly';
+  xpReward: number;
+  skillTreeCategory?: string;
+  deadline?: Date;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'active' | 'completed' | 'failed' | 'paused';
+  completedDate?: Date;
+  createdDate: Date;
+  estimatedTime: number; // in minutes
+  difficultyLevel: 1 | 2 | 3 | 4 | 5;
+  energyRequired: 'low' | 'medium' | 'high';
+  anxietyLevel: 'comfortable' | 'mild' | 'challenging' | 'daunting';
+  tags: string[];
+  prerequisites?: string[];
+  parentQuestId?: string; // Nowe pole dla hierarchicznych zadań
+}
+
+interface Collectible {
+  id: string;
+  name: string;
+  type: 'knowledge' | 'skill' | 'insight';
+  xpValue: number;
+  skillPoints?: number;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic';
+  description: string;
+  dateCollected: Date;
+  category: string;
+  source?: string; // book, article, video, etc.
+  icon?: string; // Ikona dla przedmiotu kolekcjonerskiego
+}
+
+interface HealthBar {
+  current: number;
+  maximum: number;
+  lastUpdated: Date;
+}
+
+interface HealthActivity {
+  id: string;
+  name: string;
+  healthChange: number;
+  category: 'physical' | 'mental' | 'social' | 'creative';
+  duration: number; // minutes
+  description: string;
+  icon: string;
+}
+
+interface Settings {
+  soundEnabled: boolean;
+  animationsEnabled: boolean;
+  notificationsEnabled: boolean;
+  theme: 'dark' | 'light';
+  dailyXPGoal: number;
+  maxActiveQuests: number;
+}
+
+interface Statistics {
+  totalXPEarned: number;
+  totalQuestsCompleted: number;
+  longestStreak: number;
+  currentStreak: number;
+  averageTaskCompletionTime: number;
+  favoriteQuestTypes: string[];
+  collectiblesFound: number;
+  healthActivitiesLogged: number;
+}
+
+interface ActivityLog {
+  id: string;
+  type: 'quest_completed' | 'collectible_found' | 'health_activity' | 'level_up' | 'achievement_unlocked';
+  description: string;
+  timestamp: Date;
+  xpGained?: number;
+}
+
+interface BonusXPActive {
+  multiplier: number;
+  expiresAt: Date;
+  reason: string;
+}
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  criteria: (state: GameState) => boolean; // Function to check if unlocked
+}
+
+interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  cost: number; // Skill Points cost
+  unlocked: boolean;
+  effect: (state: GameState, xpAmount: number, quest?: Quest, healthActivity?: HealthActivity) => number; // Function to apply effect
+}
+
+interface ChatMessage {
+  id: string; // Unique ID for chat message
+  role: 'user' | 'ai';
+  text: string;
+}
+
+interface GameState {
+  player: Player;
+  mainQuest: MainQuest;
+  currentSeason: Season;
+  quests: Quest[];
+  collectibles: Collectible[];
+  healthBar: HealthBar;
+  settings: Settings;
+  statistics: Statistics;
+  recentActivity: ActivityLog[];
+  lastSaved: Date;
+  customHealthActivities: HealthActivity[];
+  bonusXPActive?: BonusXPActive;
+  unlockedAchievements: string[]; // Nowe pole do śledzenia odblokowanych osiągnięć
+  unlockedSkills: string[]; // Nowe pole do śledzenia odblokowanych umiejętności
+  aiChatDefaultPrompt: string; // Nowe pole dla domyślnego promptu AI
+  aiChatHistory: ChatMessage[]; // Nowe pole dla historii chatu AI
+}
+
+interface XPSystemResult {
+  newXP: number;
+  newLevel: number;
+  actualXPGained: number;
+  levelUpResult: LevelUpResult;
+}
+
+interface LevelUpResult {
+  leveledUp: boolean;
+  newLevel?: number;
+  skillPointsEarned?: number;
+  unlockedFeatures?: string[];
+}
+
+interface XPGain {
+  amount: number;
+  reason?: string;
+}
+
+// src/utils/cn.ts
+// Pomocnicza funkcja do łączenia klas Tailwind CSS.
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// src/components/ui/button.tsx
+// Komponent przycisku Shadcn UI.
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
+
+
+// src/components/ui/card.tsx
+// Komponent karty Shadcn UI.
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+Card.displayName = "Card"
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+))
+CardHeader.displayName = "CardHeader"
+
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+))
+CardTitle.displayName = "CardTitle"
+
+const CardDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+CardDescription.displayName = "CardDescription"
+
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+))
+CardContent.displayName = "CardContent"
+
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+))
+CardFooter.displayName = "CardFooter"
+
+
+// src/components/ui/dialog.tsx
+// Komponent dialogu Shadcn UI.
+const Dialog = DialogPrimitive.Root
+
+const DialogTrigger = DialogPrimitive.Trigger
+
+const DialogPortal = DialogPrimitive.Portal
+
+const DialogClose = DialogPrimitive.Close
+
+const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+  />
+))
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
+
+const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        // Zmiany dla responsywności:
+        "sm:max-w-[95vw] sm:w-full max-h-[95vh] overflow-y-auto",
+        "data-[state=open]:slide-in-from-bottom", // Nowa animacja
+        className
+      )}
+      {...props}>
+      {children}
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </DialogPortal>
+))
+DialogContent.displayName = DialogPrimitive.Content.displayName
+
+const DialogHeader = ({
+  className,
+  ...props
+}) => (
+  <div
+    className={cn(
+      "flex flex-col space-y-1.5 text-center sm:text-left",
+      className
+    )}
+    {...props}
+  />
+)
+DialogHeader.displayName = "DialogHeader"
+
+const DialogFooter = ({
+  className,
+  ...props
+}) => (
+  <div
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className
+    )}
+    {...props}
+  />
+)
+DialogFooter.displayName = "DialogFooter"
+
+const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+))
+DialogTitle.displayName = DialogPrimitive.Title.displayName
+
+const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+DialogDescription.displayName = DialogPrimitive.Description.displayName
+
+
+// src/components/ui/input.tsx
+// Komponent pola tekstowego Shadcn UI.
+const Input = React.forwardRef(({ className, type, ...props }, ref) => {
+  return (
+    <input
+      type={type}
+      className={cn(
+        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      ref={ref}
+      {...props}
+    />
+  )
+})
+Input.displayName = "Input"
+
+
+// src/components/ui/label.tsx
+// Komponent etykiety Shadcn UI.
+const Label = React.forwardRef(({ className, ...props }, ref) => (
+  <LabelPrimitive.Root
+    ref={ref}
+    className={cn(
+      "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+      className
+    )}
+    {...props}
+  />
+))
+Label.displayName = LabelPrimitive.Root.displayName
+
+
+// src/components/ui/select.tsx
+// Komponent Select Shadcn UI.
+const Select = SelectPrimitive.Root
+
+const SelectGroup = SelectPrimitive.Group
+
+const SelectValue = SelectPrimitive.Value
+
+const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      className
+    )}
+    {...props}>
+    {children}
+    <SelectPrimitive.Icon asChild>
+      <ChevronDown className="h-4 w-4 opacity-50" />
+    </SelectPrimitive.Icon>
+  </SelectPrimitive.Trigger>
+))
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
+
+const SelectContent = React.forwardRef(({ className, children, position = "popper", ...props }, ref) => (
+  <SelectPrimitive.Portal>
+    <SelectPrimitive.Content
+      ref={ref}
+      className={cn(
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:-translate-y-1", // Poprawiono data-[side=top]
+        position === "popper" &&
+          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+        className
+      )}
+      position={position}
+      {...props}>
+      <SelectPrimitive.Viewport
+        className={cn(
+          "p-1",
+          position === "popper" &&
+            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+        )}>
+        {children}
+      </SelectPrimitive.Viewport>
+    </SelectPrimitive.Content>
+  </SelectPrimitive.Portal>
+))
+SelectContent.displayName = SelectPrimitive.Content.displayName
+
+const SelectItem = React.forwardRef(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Item
+    ref={ref}
+    className={cn(
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      className
+    )}
+    {...props}>
+    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+      <SelectPrimitive.ItemIndicator>
+        <Check className="h-4 w-4" />
+      </SelectPrimitive.ItemIndicator>
+    </span>
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+  </SelectPrimitive.Item>
+))
+SelectItem.displayName = SelectPrimitive.Item.displayName
+
+const SelectSeparator = React.forwardRef(({ className, ...props }, ref) => (
+  <SelectPrimitive.Separator
+    ref={ref}
+    className={cn("-mx-1 my-1 h-px bg-muted", className)}
+    {...props}
+  />
+))
+SelectSeparator.displayName = SelectPrimitive.Separator.displayName
+
+
+// src/components/ui/textarea.tsx
+// Komponent Textarea Shadcn UI.
+const Textarea = React.forwardRef(({ className, ...props }, ref) => {
+  return (
+    <textarea
+      className={cn(
+        "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      ref={ref}
+      {...props}
+    />
+  )
+})
+Textarea.displayName = "Textarea"
+
+
+// src/components/ui/badge.tsx
+// Komponent odznaki Shadcn UI.
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+function Badge({
+  className,
+  variant,
+  ...props
+}) {
+  return (<div className={cn(badgeVariants({ variant }), className)} {...props} />)
+}
+
+
+// src/components/ui/progress.tsx
+// Komponent paska postępu Shadcn UI.
+const Progress = React.forwardRef(({ className, value, ...props }, ref) => (
+  <ProgressPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative h-2 w-full overflow-hidden rounded-full bg-secondary",
+      className
+    )}
+    {...props}>
+    <ProgressPrimitive.Indicator
+      className="h-full w-full flex-1 bg-primary transition-all"
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </ProgressPrimitive.Root>
+))
+Progress.displayName = "Progress"
+
+
+// src/utils/xpSystem.ts
+// Logika systemu XP i poziomów.
+const XPSystem = {
+  // Oblicza XP potrzebne do osiągnięcia danego poziomu
+  calculateXPForLevel: (level: number): number => {
+    // Progresja wykładnicza: poziom 1: 100 XP, poziom 2: 250 XP, poziom 3: 450 XP
+    return Math.floor(100 * Math.pow(1.5, level - 1));
+  },
+
+  // Dodaje XP i sprawdza, czy nastąpił awans na poziom
+  addXP: (
+    state: GameState, // Pass the full state to allow skill effects to access it
+    currentXP: number,
+    currentLevel: number,
+    amount: number,
+    currentStreak: number,
+    bonusMultiplier: number = 1,
+    unlockedSkills: string[] = [], // Pass unlocked skills
+    quest?: Quest, // Pass the quest if XP is from quest completion
+    healthActivity?: HealthActivity // Pass health activity if XP is from health activity
+  ): XPSystemResult => {
+    let actualXPGained = amount;
+
+    // Zastosuj mnożnik serii
+    if (currentStreak >= 7) {
+      actualXPGained *= 3;
+    } else if (currentStreak >= 3) {
+      actualXPGained *= 2;
+    }
+
+    // Zastosuj mnożnik bonusowy
+    actualXPGained *= bonusMultiplier;
+
+    // Apply skill effects that directly modify XP
+    ALL_SKILLS.forEach(skill => {
+      if (unlockedSkills.includes(skill.id)) {
+        // Only apply effect if it's an XP-modifying effect
+        if (skill.id === 'adaptive_focus') {
+          actualXPGained = skill.effect(state, actualXPGained, quest, healthActivity);
+        }
+        // Other skills like 'boredom_detector', 'anti_procrastination_aura', 'creative_recharge'
+        // have their effects handled directly in the reducers or components where they make sense,
+        // as their primary effect isn't just XP modification.
+      }
+    });
+
+    let newXP = currentXP + actualXPGained;
+    let newLevel = currentLevel;
+    let leveledUp = false;
+    let skillPointsEarned = 0;
+    let unlockedFeatures: string[] = [];
+
+    const xpToNextLevel = XPSystem.calculateXPForLevel(currentLevel + 1);
+
+    // Sprawdź, czy nastąpił awans na poziom
+    if (newXP >= xpToNextLevel) {
+      leveledUp = true;
+      newLevel++;
+      newXP -= xpToNextLevel; // Przenieś nadmiar XP na następny poziom
+
+      // Przyznaj punkty umiejętności co 3 poziomy
+      if (newLevel % 3 === 0) {
+        skillPointsEarned = 1;
+      }
+      // Tutaj można dodać logikę odblokowywania funkcji na określonych poziomach
+    }
+
+    const levelUpResult: LevelUpResult = {
+      leveledUp,
+      newLevel: leveledUp ? newLevel : undefined,
+      skillPointsEarned: leveledUp ? skillPointsEarned : undefined,
+      unlockedFeatures: leveledUp ? unlockedFeatures : undefined,
+    };
+
+    return {
+      newXP,
+      newLevel,
+      actualXPGained,
+      levelUpResult,
+    };
+  },
+
+  // Oblicza serię aktywności
+  calculateStreak: (lastActiveDate: Date, currentDate: Date): { isStreakBroken: boolean; daysSinceLastActive: number } => {
+    const lastActiveDay = new Date(lastActiveDate).setHours(0, 0, 0, 0);
+    const currentDay = new Date(currentDate).setHours(0, 0, 0, 0);
+
+    const diffTime = Math.abs(currentDay - lastActiveDay);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      return { isStreakBroken: false, daysSinceLastActive: 1 }; // Kontynuacja serii
+    } else if (diffDays > 1) {
+      return { isStreakBroken: true, daysSinceLastActive: diffDays }; // Seria przerwana
+    } else {
+      return { isStreakBroken: false, daysSinceLastActive: 0 }; // Aktywność tego samego dnia
+    }
+  },
+};
+
+// src/utils/collectibles.ts
+// Logika generowania przedmiotów kolekcjonerskich.
+const CollectibleSystem = {
+  // Definicje szablonów przedmiotów kolekcjonerskich
+  COLLECTIBLE_TEMPLATES: {
+    knowledge: [
+      { name: 'Ancient Scroll', description: 'A fragment of forgotten wisdom.', xpValue: 10, rarity: 'common', icon: '📜' },
+      { name: 'Tome of Insight', description: 'Deep knowledge from an old book.', xpValue: 15, rarity: 'uncommon', icon: '📖' },
+      { name: 'Blueprint of Understanding', description: 'A rare diagram revealing complex concepts.', xpValue: 25, rarity: 'rare', icon: '📐' },
+    ],
+    skill: [
+      { name: 'Honed Blade', description: 'Represents a sharpened skill.', xpValue: 15, rarity: 'uncommon', icon: '🔪', skillPoints: 1 },
+      { name: 'Masterwork Tool', description: 'A tool crafted with exceptional skill.', xpValue: 25, rarity: 'rare', icon: '🛠️', skillPoints: 2 },
+      { name: 'Virtuoso\'s Touch', description: 'A legendary item symbolizing peak performance.', xpValue: 40, rarity: 'epic', icon: '✨', skillPoints: 3 },
+    ],
+    insight: [
+      { name: 'Spark of Idea', description: 'A sudden, small realization.', xpValue: 10, rarity: 'common', icon: '💡' },
+      { name: 'Moment of Clarity', description: 'A deeper understanding of a complex issue.', xpValue: 20, rarity: 'uncommon', icon: '🧠' },
+      { name: 'Epiphany Crystal', description: 'A profound breakthrough in perspective.', xpValue: 30, rarity: 'rare', icon: '💎' },
+    ],
+  },
+
+  // Generuje losowy przedmiot kolekcjonerski danego typu
+  generateRandomCollectible: (type: 'knowledge' | 'skill' | 'insight'): Omit<Collectible, 'id' | 'dateCollected'> => {
+    const templates = CollectibleSystem.COLLECTIBLE_TEMPLATES[type];
+    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+
+    return {
+      name: randomTemplate.name,
+      type: type,
+      xpValue: randomTemplate.xpValue,
+      rarity: randomTemplate.rarity,
+      description: randomTemplate.description,
+      category: type === 'knowledge' ? 'Learning' : type === 'skill' ? 'Mastery' : 'Self-Reflection',
+      skillPoints: randomTemplate.skillPoints || undefined,
+      icon: randomTemplate.icon || undefined,
+    };
+  },
+};
+
+// src/data/healthActivities.ts
+// Domyślne aktywności zdrowotne.
+const DEFAULT_HEALTH_ACTIVITIES: HealthActivity[] = [
+  // Pozytywne aktywności
+  {
+    id: 'meditation',
+    name: '10-min Meditation',
+    healthChange: 15,
+    category: 'mental',
+    duration: 10,
+    description: 'Calm your mind and reduce stress',
+    icon: '🧘'
+  },
+  {
+    id: 'nature_walk',
+    name: 'Nature Walk',
+    healthChange: 10,
+    category: 'physical',
+    duration: 20,
+    description: 'Get fresh air and gentle movement',
+    icon: '🚶'
+  },
+  {
+    id: 'good_sleep',
+    name: 'Full Night Sleep',
+    healthChange: 20,
+    category: 'physical',
+    duration: 480,
+    description: '7-8 hours of quality sleep',
+    icon: '😴'
+  },
+  {
+    id: 'exercise',
+    name: 'Exercise Session',
+    healthChange: 15,
+    category: 'physical',
+    duration: 30,
+    description: 'Any form of physical exercise',
+    icon: '💪'
+  },
+  {
+    id: 'social_connection',
+    name: 'Quality Social Time',
+    healthChange: 12,
+    category: 'social',
+    duration: 60,
+    description: 'Meaningful conversation with someone',
+    icon: '👥'
+  },
+  {
+    id: 'creative_activity',
+    name: 'Creative Expression',
+    healthChange: 10,
+    category: 'creative',
+    duration: 30,
+    description: 'Art, music, writing, or crafts',
+    icon: '🎨'
+  },
+  {
+    id: 'healthy_meal',
+    name: 'Nutritious Meal',
+    healthChange: 8,
+    category: 'physical',
+    duration: 15,
+    description: 'Balanced, wholesome food',
+    icon: '🥗'
+  },
+  {
+    id: 'learning',
+    name: 'Learning Session',
+    healthChange: 10,
+    category: 'mental',
+    duration: 45,
+    description: 'Engaging with new knowledge',
+    icon: '📚'
+  },
+
+  // Negatywne aktywności (do uczciwego śledzenia)
+  {
+    id: 'social_media_binge',
+    name: 'Social Media Binge',
+    healthChange: -8,
+    category: 'mental',
+    duration: 60,
+    description: 'Extended mindless scrolling',
+    icon: '📱'
+  },
+  {
+    id: 'poor_sleep',
+    name: 'Poor Sleep Night',
+    healthChange: -15,
+    category: 'physical',
+    duration: 0,
+    description: 'Less than 5 hours or restless sleep',
+    icon: '😵'
+  },
+  {
+    id: 'junk_food',
+    name: 'Junk Food Binge',
+    healthChange: -5,
+    category: 'physical',
+    duration: 0,
+    description: 'Excessive processed or sugary food',
+    icon: '🍟'
+  },
+  {
+    id: 'isolation',
+    name: 'Social Isolation',
+    healthChange: -10,
+    category: 'social',
+    duration: 0,
+    description: 'Avoiding social connections',
+    icon: '😔'
+  },
+  {
+    id: 'overwork',
+    name: 'Overworking',
+    healthChange: -12,
+    category: 'mental',
+    duration: 0,
+    description: 'Working beyond healthy limits',
+    icon: '😤'
+  },
+  {
+    id: 'procrastination_spiral',
+    name: 'Procrastination Spiral',
+    healthChange: -8,
+    category: 'mental',
+    duration: 0,
+    description: 'Avoiding important tasks',
+    icon: '⏰'
+  }
+];
+
+// src/data/achievements.ts
+const ALL_ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first_quest_completed',
+    name: 'First Step',
+    description: 'Complete your very first quest.',
+    icon: '✨',
+    criteria: (state) => state.statistics.totalQuestsCompleted >= 1,
+  },
+  {
+    id: 'reach_level_5',
+    name: 'Novice Adventurer',
+    description: 'Reach player level 5.',
+    icon: '🌟',
+    criteria: (state) => state.player.level >= 5,
+  },
+  {
+    id: 'three_day_streak',
+    name: 'Consistent Effort',
+    description: 'Maintain a 3-day streak.',
+    icon: '🔥',
+    criteria: (state) => state.player.longestStreak >= 3,
+  },
+  {
+    id: 'collect_3_items',
+    name: 'Curiosity Seeker',
+    description: 'Collect 3 unique items.',
+    icon: '💎',
+    criteria: (state) => state.collectibles.length >= 3,
+  },
+  {
+    id: 'log_5_health_activities',
+    name: 'Wellness Warrior',
+    description: 'Log 5 health activities.',
+    icon: '❤️',
+    criteria: (state) => state.statistics.healthActivitiesLogged >= 5,
+  },
+  {
+    id: 'reach_level_10',
+    name: 'Experienced Explorer',
+    description: 'Reach player level 10.',
+    icon: '🏆',
+    criteria: (state) => state.player.level >= 10,
+  },
+  {
+    id: 'seven_day_streak',
+    name: 'Unstoppable Momentum',
+    description: 'Maintain a 7-day streak.',
+    icon: '🚀',
+    criteria: (state) => state.player.longestStreak >= 7,
+  },
+  {
+    id: 'complete_10_quests',
+    name: 'Quest Master',
+    description: 'Complete 10 quests.',
+    icon: '📜',
+    criteria: (state) => state.statistics.totalQuestsCompleted >= 10,
+  },
+];
+
+// src/data/skills.ts
+// Definicje umiejętności neurodywergentnych
+const ALL_SKILLS: Skill[] = [
+  {
+    id: 'adaptive_focus',
+    name: 'Adaptive Focus',
+    description: 'Tasks with estimated time under 15 minutes grant +20% XP.',
+    icon: '🧠',
+    cost: 1,
+    unlocked: false, // This will be managed by the game state
+    effect: (state, xpAmount, quest) => {
+      // Only apply if the skill is unlocked and the quest meets criteria
+      if (quest && quest.estimatedTime <= 15) {
+        return xpAmount * 1.20; // +20% XP
+      }
+      return xpAmount;
+    }
+  },
+  {
+    id: 'boredom_detector',
+    name: 'Boredom Detector',
+    description: 'Suggests a change of activity after prolonged inactivity or abandoning tasks.',
+    icon: '⏰',
+    cost: 2,
+    unlocked: false,
+    effect: (state, xpAmount) => xpAmount // This skill primarily affects UI/AI suggestions, not direct XP
+  },
+  {
+    id: 'anti_procrastination_aura',
+    name: 'Anti-Procrastination Aura',
+    description: 'Completing a "daunting" task within 15 minutes grants bonus HP and XP.',
+    icon: '🛡️',
+    cost: 3,
+    unlocked: false,
+    effect: (state, xpAmount, quest) => {
+      // This effect is handled directly in completeQuest to modify HP and XP
+      // We return original xpAmount here as the bonus is applied separately.
+      return xpAmount;
+    }
+  },
+  {
+    id: 'creative_recharge',
+    name: 'Creative Recharge',
+    description: 'Creative and Learning activities grant additional HP/XP when performed after high-difficulty tasks.',
+    icon: '🎨',
+    cost: 2,
+    unlocked: false,
+    effect: (state, xpAmount, quest, healthActivity) => {
+      // This effect is handled directly in handleHealthChange to modify HP and XP
+      // We return original xpAmount here as the bonus is applied separately.
+      return xpAmount;
+    }
+  }
+];
+
+
+// src/reducers/playerReducer.ts
+// Reducer odpowiedzialny za stan gracza (XP, poziom, seria, bonusy XP).
+type PlayerAction =
+  | { type: 'ADD_XP'; payload: XPGain }
+  | { type: 'UPDATE_STREAK'; payload: { date: Date } }
+  | { type: 'ACTIVATE_BONUS_XP'; payload: { multiplier: number; duration: number; reason: string } }
+  | { type: 'SPEND_SKILL_POINTS'; payload: { amount: number } }
+  | { type: 'ADD_HEALTH'; payload: number }; // Nowa akcja dla dodawania HP z umiejętności
+
+function playerReducer(state: GameState, action: PlayerAction): Partial<GameState> {
+  switch (action.type) {
+    case 'UPDATE_STREAK': {
+      const streakCheck = XPSystem.calculateStreak(state.player.lastActiveDate, action.payload.date);
+      let newStreak = state.player.currentStreak;
+
+      if (!streakCheck.isStreakBroken && streakCheck.daysSinceLastActive === 1) {
+        newStreak = state.player.currentStreak + 1;
+      } else if (streakCheck.isStreakBroken) {
+        newStreak = 0;
+      }
+
+      // Zapewnij, że obiekt statistics istnieje i ma domyślne wartości
+      const currentStatistics = state.statistics || {
+        totalXPEarned: 0,
+        totalQuestsCompleted: 0,
+        longestStreak: 0,
+        currentStreak: 0,
+        averageTaskCompletionTime: 0,
+        favoriteQuestTypes: [],
+        collectiblesFound: 0,
+        healthActivitiesLogged: 0
+      };
+
+      return {
+        player: {
+          ...state.player,
+          currentStreak: newStreak,
+          longestStreak: Math.max(state.player.longestStreak || 0, newStreak),
+          lastActiveDate: action.payload.date
+        },
+        statistics: {
+          ...currentStatistics,
+          currentStreak: newStreak,
+          longestStreak: Math.max(currentStatistics.longestStreak || 0, newStreak)
+        }
+      };
+    }
+
+    case 'ADD_XP': {
+      const bonusMultiplier = state.bonusXPActive && new Date() < state.bonusXPActive.expiresAt
+        ? state.bonusXPActive.multiplier
+        : 1;
+
+      const xpResult = XPSystem.addXP(
+        state, // Pass the full state
+        state.player.xp,
+        state.player.level,
+        action.payload.amount,
+        state.player.currentStreak,
+        bonusMultiplier,
+        state.unlockedSkills // Pass unlocked skills to XP system
+      );
+
+      return {
+        player: {
+          ...state.player,
+          xp: xpResult.newXP,
+          level: xpResult.newLevel,
+          xpToNextLevel: XPSystem.calculateXPForLevel(xpResult.newLevel + 1),
+          skillPoints: state.player.skillPoints + (xpResult.levelUpResult.skillPointsEarned || 0)
+        },
+        statistics: {
+          ...state.statistics,
+          totalXPEarned: (state.statistics?.totalXPEarned || 0) + xpResult.actualXPGained
+        }
+      };
+    }
+
+    case 'ACTIVATE_BONUS_XP': {
+      const bonusXPActive: BonusXPActive = {
+        multiplier: action.payload.multiplier,
+        expiresAt: new Date(Date.now() + action.payload.duration * 60000), // duration w minutach
+        reason: action.payload.reason
+      };
+      return {
+        bonusXPActive: bonusXPActive
+      };
+    }
+
+    case 'SPEND_SKILL_POINTS':
+      return {
+        player: {
+          ...state.player,
+          skillPoints: state.player.skillPoints - action.payload.amount
+        }
+      };
+    
+    case 'ADD_HEALTH':
+      return {
+        healthBar: {
+          ...state.healthBar,
+          current: Math.min(state.healthBar.maximum, state.healthBar.current + action.payload)
+        }
+      };
+
+    default:
+      return {};
+  }
+}
+
+// src/reducers/questReducer.ts
+// Reducer odpowiedzialny za zarządzanie zadaniami.
+type QuestAction =
+  | { type: 'COMPLETE_QUEST'; payload: string }
+  | { type: 'ADD_QUEST'; payload: Quest }
+  | { type: 'SET_MAIN_QUEST'; payload: { title: string; description: string } }
+  | { type: 'SET_ACTIVE_QUEST'; payload: string | null }; // Nowa akcja do ustawiania aktywnego zadania
+
+function questReducer(state: GameState, action: QuestAction): Partial<GameState> {
+  switch (action.type) {
+    case 'COMPLETE_QUEST': {
+      const quest = state.quests.find(q => q.id === action.payload);
+      if (!quest || quest.status === 'completed') return {};
+
+      let actualXPGained = quest.xpReward;
+      let healthBonus = 0;
+
+      // Apply AntiProcrastinationAura skill effect
+      if (state.unlockedSkills.includes('anti_procrastination_aura') && quest.anxietyLevel === 'daunting') {
+        // For simplicity, assuming completion within 15 minutes is met if the skill is unlocked and task is daunting
+        // In a real scenario, you'd track the start time of the quest.
+        healthBonus += 10; // Bonus HP
+        actualXPGained += Math.floor(quest.xpReward * 0.10); // 10% bonus XP
+        toast.info('Anti-Procrastination Aura activated! Bonus HP & XP gained.', { duration: 3000 });
+      }
+
+      const bonusMultiplier = state.bonusXPActive && new Date() < state.bonusXPActive.expiresAt
+        ? state.bonusXPActive.multiplier
+        : 1;
+
+      const xpResult = XPSystem.addXP(
+        state, // Pass the full state
+        state.player.xp,
+        state.player.level,
+        actualXPGained, // Use modified XP
+        state.player.currentStreak,
+        bonusMultiplier,
+        state.unlockedSkills, // Pass unlocked skills
+        quest // Pass the quest
+      );
+
+      // Szansa na znalezienie przedmiotu kolekcjonerskiego
+      let newCollectible: Collectible | null = null;
+      const collectibleChance = Math.random();
+      const questDifficulty = quest.difficultyLevel || 1;
+      const chanceThreshold = 0.15 + (questDifficulty * 0.05); // Zwiększona szansa dla trudniejszych zadań
+
+      if (collectibleChance < chanceThreshold && state.player.level >= 5) {
+        const collectibleType = quest.anxietyLevel === 'challenging' || quest.anxietyLevel === 'daunting'
+          ? 'skill' // Trudne zadania mogą dać umiejętności
+          : quest.type === 'daily' ? 'insight' : 'knowledge'; // Codzienne zadania dają wgląd, inne wiedzę
+
+        const collectibleData = CollectibleSystem.generateRandomCollectible(collectibleType);
+        newCollectible = {
+          id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+          dateCollected: new Date(),
+          ...collectibleData
+        };
+      }
+
+      const activity: ActivityLog = {
+        id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+        type: 'quest_completed',
+        description: `Completed "${quest.title}"`,
+        timestamp: new Date(),
+        xpGained: xpResult.actualXPGained
+      };
+
+      // Zapewnij, że obiekt statistics istnieje i ma domyślne wartości
+      const currentStatistics = state.statistics || {
+        totalXPEarned: 0,
+        totalQuestsCompleted: 0,
+        longestStreak: 0,
+        currentStreak: 0,
+        averageTaskCompletionTime: 0,
+        favoriteQuestTypes: [],
+        collectiblesFound: 0,
+        healthActivitiesLogged: 0
+      };
+
+      return {
+        player: {
+          ...state.player,
+          xp: xpResult.newXP,
+          level: xpResult.newLevel,
+          xpToNextLevel: XPSystem.calculateXPForLevel(xpResult.newLevel + 1),
+          skillPoints: state.player.skillPoints + (xpResult.levelUpResult.skillPointsEarned || 0)
+        },
+        healthBar: {
+          ...state.healthBar,
+          current: Math.min(state.healthBar.maximum, state.healthBar.current + healthBonus) // Apply health bonus
+        },
+        quests: state.quests.map(q =>
+          q.id === action.payload
+            ? { ...q, status: 'completed' as const, completedDate: new Date() }
+            : q
+        ),
+        collectibles: newCollectible ? [...state.collectibles, newCollectible] : state.collectibles,
+        statistics: {
+          ...currentStatistics,
+          totalQuestsCompleted: currentStatistics.totalQuestsCompleted + 1,
+          totalXPEarned: currentStatistics.totalXPEarned + xpResult.actualXPGained,
+          collectiblesFound: newCollectible ? currentStatistics.collectiblesFound + 1 : currentStatistics.collectiblesFound
+        },
+        recentActivity: [activity, ...state.recentActivity.slice(0, 9)] // Dodaj do ostatnich aktywności
+      };
+    }
+
+    case 'ADD_QUEST':
+      return {
+        quests: [...state.quests, action.payload]
+      };
+
+    case 'SET_MAIN_QUEST':
+      return {
+        mainQuest: {
+          ...action.payload,
+          isActive: true
+        }
+      };
+
+    case 'SET_ACTIVE_QUEST':
+      // Logika do ustawiania, które zadanie jest "aktywne" (np. dla trybu Focus)
+      // Na razie tylko wizualna zmiana, bez wpływu na logikę gry
+      return {
+        quests: state.quests.map(q => ({
+          ...q,
+          // Możesz dodać pole `isActiveInFocusMode: boolean` do interfejsu Quest
+          // lub po prostu użyć stanu lokalnego w QuestList do wizualizacji
+        }))
+      };
+
+    default:
+      return {};
+  }
+}
+
+// src/reducers/healthReducer.ts
+// Reducer odpowiedzialny za pasek zdrowia.
+type HealthAction =
+  | { type: 'UPDATE_HEALTH'; payload: { change: number, activity?: HealthActivity } }; // Dodano opcjonalną aktywność
+
+function healthReducer(state: GameState, action: HealthAction): Partial<GameState> {
+  switch (action.type) {
+    case 'UPDATE_HEALTH': {
+      let healthChange = action.payload.change;
+      let xpBonus = 0;
+
+      // Apply CreativeRecharge skill effect
+      if (state.unlockedSkills.includes('creative_recharge') && action.payload.activity) {
+        const activity = action.payload.activity;
+        if (activity.category === 'creative' || (activity.category === 'mental' && activity.name === 'Learning Session')) {
+          // Check if the last completed quest was high difficulty (simplified for now)
+          // In a real scenario, you'd track the difficulty of the last completed quest.
+          // For now, let's assume it applies if the skill is unlocked and it's a creative/learning activity.
+          healthChange += 5; // Bonus HP
+          xpBonus += 10; // Bonus XP
+          toast.info('Creative Recharge activated! Bonus HP & XP gained.', { duration: 3000 });
+        }
+      }
+
+      const newHealth = Math.max(0, Math.min(100, state.healthBar.current + healthChange));
+
+      // Zapewnij, że obiekt statistics istnieje i ma domyślne wartości
+      const currentStatistics = state.statistics || {
+        totalXPEarned: 0,
+        totalQuestsCompleted: 0,
+        longestStreak: 0,
+        currentStreak: 0,
+        averageTaskCompletionTime: 0,
+        favoriteQuestTypes: [],
+        collectiblesFound: 0,
+        healthActivitiesLogged: 0
+      };
+
+      // Apply XP bonus if any
+      let newXP = state.player.xp;
+      let newLevel = state.player.level;
+      let newSkillPoints = state.player.skillPoints;
+      let actualXPGainedFromBonus = 0;
+
+      if (xpBonus > 0) {
+        const xpResult = XPSystem.addXP(
+          state, // Pass the full state
+          state.player.xp,
+          state.player.level,
+          xpBonus,
+          state.player.currentStreak,
+          1, // No bonus multiplier for skill XP
+          state.unlockedSkills,
+          undefined,
+          action.payload.activity
+        );
+        newXP = xpResult.newXP;
+        newLevel = xpResult.newLevel;
+        newSkillPoints = xpResult.levelUpResult.skillPointsEarned ? state.player.skillPoints + xpResult.levelUpResult.skillPointsEarned : state.player.skillPoints;
+        actualXPGainedFromBonus = xpResult.actualXPGained;
+      }
+
+
+      return {
+        healthBar: {
+          ...state.healthBar,
+          current: newHealth,
+          lastUpdated: new Date()
+        },
+        statistics: {
+          ...currentStatistics,
+          healthActivitiesLogged: currentStatistics.healthActivitiesLogged + 1,
+          totalXPEarned: currentStatistics.totalXPEarned + actualXPGainedFromBonus // Add bonus XP to total
+        },
+        player: {
+          ...state.player,
+          xp: newXP,
+          level: newLevel,
+          xpToNextLevel: XPSystem.calculateXPForLevel(newLevel + 1),
+          skillPoints: newSkillPoints
+        }
+      };
+    }
+
+    default:
+      return {};
+  }
+}
+
+// src/reducers/collectiblesReducer.ts
+// Reducer odpowiedzialny za przedmioty kolekcjonerskie.
+type CollectiblesAction =
+  | { type: 'ADD_COLLECTIBLE'; payload: Collectible };
+
+function collectiblesReducer(state: GameState, action: CollectiblesAction): Partial<GameState> {
+  switch (action.type) {
+    case 'ADD_COLLECTIBLE': {
+      const activity: ActivityLog = {
+        id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+        type: 'collectible_found',
+        description: `Found ${action.payload.name}!`,
+        timestamp: new Date(),
+        xpGained: action.payload.xpValue
+      };
+
+      // Zapewnij, że obiekt statistics istnieje i ma domyślne wartości
+      const currentStatistics = state.statistics || {
+        totalXPEarned: 0,
+        totalQuestsCompleted: 0,
+        longestStreak: 0,
+        currentStreak: 0,
+        averageTaskCompletionTime: 0,
+        favoriteQuestTypes: [],
+        collectiblesFound: 0,
+        healthActivitiesLogged: 0
+      };
+
+      return {
+        collectibles: [...state.collectibles, action.payload],
+        statistics: {
+          ...currentStatistics,
+          collectiblesFound: currentStatistics.collectiblesFound + 1,
+          totalXPEarned: currentStatistics.totalXPEarned + action.payload.xpValue
+        },
+        recentActivity: [activity, ...state.recentActivity.slice(0, 9)]
+      };
+    }
+
+    default:
+      return {};
+  }
+}
+
+// src/reducers/generalReducer.ts
+// Reducer odpowiedzialny za ogólne akcje stanu gry (ładowanie, postęp sezonu, log aktywności).
+type GeneralAction =
+  | { type: 'LOAD_GAME_STATE'; payload: GameState }
+  | { type: 'UPDATE_SEASON_PROGRESS'; payload: number }
+  | { type: 'LOG_ACTIVITY'; payload: ActivityLog }
+  | { type: 'UPDATE_SEASON'; payload: Season } // Akcja do aktualizacji sezonu
+  | { type: 'ADD_HEALTH_ACTIVITY'; payload: HealthActivity } // Akcja do dodawania aktywności zdrowotnej
+  | { type: 'UPDATE_HEALTH_ACTIVITY'; payload: HealthActivity } // Akcja do aktualizacji aktywności zdrowotnej
+  | { type: 'REMOVE_HEALTH_ACTIVITY'; payload: string }
+  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
+  | { type: 'UNLOCK_SKILL'; payload: string } // Nowa akcja do odblokowywania umiejętności
+  | { type: 'SET_AI_CHAT_PROMPT'; payload: string } // Nowa akcja do ustawiania domyślnego promptu AI
+  | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage } // Nowa akcja do dodawania wiadomości do historii chatu
+  | { type: 'CLEAR_CHAT_HISTORY' }; // Nowa akcja do czyszczenia historii chatu
+
+function generalReducer(state: GameState, action: GeneralAction): Partial<GameState> {
+  switch (action.type) {
+    case 'LOAD_GAME_STATE':
+      return action.payload;
+
+    case 'UPDATE_SEASON_PROGRESS':
+      return {
+        currentSeason: {
+          ...state.currentSeason,
+          progress: action.payload
+        }
+      };
+
+    case 'LOG_ACTIVITY':
+      return {
+        recentActivity: [action.payload, ...state.recentActivity.slice(0, 9)]
+      };
+
+    case 'UPDATE_SEASON':
+      return {
+        currentSeason: action.payload
+      };
+
+    case 'ADD_HEALTH_ACTIVITY':
+      return {
+        customHealthActivities: [...(state.customHealthActivities || []), action.payload]
+      };
+
+    case 'UPDATE_HEALTH_ACTIVITY':
+      return {
+        customHealthActivities: (state.customHealthActivities || []).map(activity =>
+          activity.id === action.payload.id ? action.payload : activity
+        )
+      };
+
+    case 'REMOVE_HEALTH_ACTIVITY':
+      return {
+        customHealthActivities: (state.customHealthActivities || []).filter(activity =>
+          activity.id !== action.payload
+        )
+      };
+
+    case 'UNLOCK_ACHIEVEMENT':
+      return {
+        unlockedAchievements: [...state.unlockedAchievements, action.payload]
+      };
+
+    case 'UNLOCK_SKILL':
+      return {
+        unlockedSkills: [...state.unlockedSkills, action.payload]
+      };
+
+    case 'SET_AI_CHAT_PROMPT':
+      return {
+        aiChatDefaultPrompt: action.payload
+      };
+
+    case 'ADD_CHAT_MESSAGE':
+      return {
+        aiChatHistory: [...state.aiChatHistory, action.payload]
+      };
+
+    case 'CLEAR_CHAT_HISTORY':
+      return {
+        aiChatHistory: []
+      };
+
+    default:
+      return {};
+  }
+}
+
+// src/context/GameContext.tsx
+// Główny kontekst gry, zarządza stanem i akcjami aplikacji.
+
+// Definicja wszystkich możliwych akcji w grze
+type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction;
+
+// Początkowy stan gry
+const initialState: GameState = {
+  player: {
+    id: 'player_1',
+    name: 'Hero',
+    level: 1,
+    xp: 0,
+    xpToNextLevel: 100,
+    skillPoints: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastActiveDate: new Date()
+  },
+  mainQuest: {
+    title: 'Begin Your Journey',
+    description: 'Complete your first quest to start building momentum',
+    isActive: true
+  },
+  currentSeason: {
+    id: 'season_1',
+    title: 'Foundation Building',
+    description: 'Establish core systems and routines',
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 dni od teraz
+    progress: 0,
+    goals: [
+      'Complete 10 daily quests',
+      'Collect your first rare item',
+      'Maintain 7-day streak',
+      'Unlock the collectibles system'
+    ]
+  },
+  quests: [
+    {
+      id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+      title: 'Set Up Your Workspace',
+      description: 'Organize your desk and digital workspace for maximum productivity',
+      type: 'main',
+      xpReward: 50,
+      priority: 'high',
+      status: 'active',
+      createdDate: new Date(),
+      estimatedTime: 30,
+      difficultyLevel: 2,
+      energyRequired: 'medium',
+      anxietyLevel: 'comfortable',
+      tags: ['productivity', 'setup', 'environment']
+    },
+    {
+      id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+      title: 'Daily Reflection',
+      description: 'Write 3 things you accomplished today and 1 thing you learned',
+      type: 'daily',
+      xpReward: 15,
+      priority: 'medium',
+      status: 'active',
+      createdDate: new Date(),
+      estimatedTime: 10,
+      difficultyLevel: 1,
+      energyRequired: 'low',
+      anxietyLevel: 'comfortable',
+      tags: ['reflection', 'growth', 'mindfulness']
+    },
+    {
+      id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+      title: 'Tackle That Dreaded Task',
+      description: 'Pick one task you\'ve been avoiding and just start it (even for 5 minutes)',
+      type: 'side',
+      xpReward: 35,
+      priority: 'high',
+      status: 'active',
+      createdDate: new Date(),
+      estimatedTime: 15,
+      difficultyLevel: 4,
+      energyRequired: 'high',
+      anxietyLevel: 'challenging',
+      tags: ['anxiety', 'avoidance', 'breakthrough']
+    }
+  ],
+  collectibles: [],
+  healthBar: {
+    current: 100,
+    maximum: 100,
+    lastUpdated: new Date()
+  },
+  settings: {
+    soundEnabled: true,
+    animationsEnabled: true,
+    notificationsEnabled: false,
+    theme: 'dark',
+    dailyXPGoal: 100,
+    maxActiveQuests: 5
+  },
+  statistics: {
+    totalXPEarned: 0,
+    totalQuestsCompleted: 0,
+    longestStreak: 0,
+    currentStreak: 0,
+    averageTaskCompletionTime: 0,
+    favoriteQuestTypes: [],
+    collectiblesFound: 0,
+    healthActivitiesLogged: 0
+  },
+  recentActivity: [],
+  lastSaved: new Date(),
+  customHealthActivities: [], // Dodanie pustej tablicy dla niestandardowych aktywności zdrowotnych
+  unlockedAchievements: [], // Inicjalizacja pustej tablicy osiągnięć
+  unlockedSkills: [], // Inicjalizacja pustej tablicy umiejętności
+  aiChatDefaultPrompt: '', // Inicjalizacja pustego domyślnego promptu AI
+  aiChatHistory: [], // Inicjalizacja pustej historii chatu AI
+};
+
+// Główny reducer, który deleguje akcje do mniejszych reducerów
+function gameReducer(state: GameState, action: GameAction): GameState {
+  let updates: Partial<GameState> = {};
+
+  switch (action.type) {
+    case 'UPDATE_STREAK':
+    case 'ADD_XP':
+    case 'ACTIVATE_BONUS_XP':
+    case 'SPEND_SKILL_POINTS':
+    case 'ADD_HEALTH': // Obsługiwane przez playerReducer
+      updates = playerReducer(state, action as PlayerAction); // Rzutowanie akcji
+      break;
+    
+    case 'COMPLETE_QUEST':
+    case 'ADD_QUEST':
+    case 'SET_MAIN_QUEST':
+    case 'SET_ACTIVE_QUEST':
+      updates = questReducer(state, action as QuestAction); // Rzutowanie akcji
+      break;
+    
+    case 'UPDATE_HEALTH':
+      updates = healthReducer(state, action as HealthAction); // Rzutowanie akcji
+      break;
+    
+    case 'ADD_COLLECTIBLE':
+      updates = collectiblesReducer(state, action as CollectiblesAction); // Rzutowanie akcji
+      break;
+    
+    case 'LOAD_GAME_STATE':
+    case 'UPDATE_SEASON_PROGRESS':
+    case 'LOG_ACTIVITY':
+    case 'UPDATE_SEASON': // Obsługiwane przez generalReducer
+    case 'ADD_HEALTH_ACTIVITY': // Obsługiwane przez generalReducer
+    case 'UPDATE_HEALTH_ACTIVITY': // Obsługiwane przez generalReducer
+    case 'REMOVE_HEALTH_ACTIVITY': // Obsługiwane przez generalReducer
+    case 'UNLOCK_ACHIEVEMENT': // Obsługiwane przez generalReducer
+    case 'UNLOCK_SKILL': // Obsługiwane przez generalReducer
+    case 'SET_AI_CHAT_PROMPT': // Obsługiwane przez generalReducer
+    case 'ADD_CHAT_MESSAGE': // Obsługiwane przez generalReducer
+    case 'CLEAR_CHAT_HISTORY': // Obsługiwane przez generalReducer
+      updates = generalReducer(state, action as GeneralAction); // Rzutowanie akcji
+      break;
+    
+    default:
+      // Zwracamy niezmieniony stan, jeśli akcja nie została obsłużona
+      return state;
+  }
+
+  // Zawsze aktualizujemy datę ostatniego zapisu
+  return {
+    ...state,
+    ...updates,
+    lastSaved: new Date()
+  };
+}
+
+// Interfejs dla kontekstu gry, definiujący stan i dostępne akcje
+interface GameContextType {
+  state: GameState;
+  actions: {
+    completeQuest: (questId: string) => void;
+    addXP: (xpGain: XPGain) => void;
+    addQuest: (quest: Quest) => void;
+    updateHealth: (change: number, activity?: HealthActivity) => void; // Zmieniono sygnaturę
+    setMainQuest: (title: string, description: string) => void;
+    updateSeasonProgress: (progress: number) => void;
+    addCollectible: (collectible: Collectible) => void;
+    updateStreak: (date?: Date) => void;
+    activateBonusXP: (multiplier: number, duration: number, reason: string) => void;
+    updateSeason: (season: Season) => void; // Akcja do aktualizacji sezonu
+    addHealthActivity: (activity: HealthActivity) => void; // Akcja do dodawania aktywności zdrowotnej
+    updateHealthActivity: (activity: HealthActivity) => void; // Akcja do aktualizacji aktywności zdrowotnej
+    removeHealthActivity: (activityId: string) => void; // Akcja do usuwania aktywności zdrowotnej
+    logActivity: (activity: ActivityLog) => void; // Nowa akcja do logowania aktywności
+    unlockAchievement: (achievementId: string) => void; // Nowa akcja do odblokowywania osiągnięć
+    unlockSkill: (skillId: string) => void; // Nowa akcja do odblokowywania umiejętności
+    spendSkillPoints: (amount: number) => void; // Nowa akcja do wydawania punktów umiejętności
+    setActiveQuest: (questId: string | null) => void; // Nowa akcja do ustawiania aktywnego zadania
+    addHealth: (amount: number) => void; // Nowa akcja do dodawania HP
+    setAIChatPrompt: (prompt: string) => void; // Nowa akcja do ustawiania domyślnego promptu AI
+    openAIChat: (prompt?: string) => void; // Nowa akcja do otwierania chatbota
+    closeAIChat: () => void; // Nowa akcja do zamykania chatbota
+    addChatMessage: (message: ChatMessage) => void; // Nowa akcja do dodawania wiadomości do historii chatu
+    clearChatHistory: () => void; // Nowa akcja do czyszczenia historii chatu
+  };
+}
+
+// Tworzenie kontekstu
+const GameContext = createContext<GameContextType | undefined>(undefined);
+
+// Komponent dostawcy kontekstu gry
+function GameProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false); // Stan do kontrolowania otwarcia chatbota
+
+  // Efekt do aktualizacji serii przy ładowaniu/interakcji z aplikacją
+  useEffect(() => {
+    dispatch({ type: 'UPDATE_STREAK', payload: { date: new Date() } });
+  }, []);
+
+  // Efekt do ładowania stanu z localStorage przy montowaniu komponentu
+  useEffect(() => {
+    const savedState = localStorage.getItem('gameState');
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        // Konwersja stringów dat z powrotem na obiekty Date
+        parsedState.currentSeason.startDate = new Date(parsedState.currentSeason.startDate);
+        parsedState.currentSeason.endDate = new Date(parsedState.currentSeason.endDate);
+        parsedState.healthBar.lastUpdated = new Date(parsedState.healthBar.lastUpdated);
+        parsedState.lastSaved = new Date(parsedState.lastSaved);
+        parsedState.player.lastActiveDate = new Date(parsedState.player.lastActiveDate);
+        
+        if (parsedState.bonusXPActive) {
+          parsedState.bonusXPActive.expiresAt = new Date(parsedState.bonusXPActive.expiresAt);
+        }
+        
+        parsedState.quests = parsedState.quests.map((q: any) => ({
+          ...q,
+          createdDate: new Date(q.createdDate),
+          completedDate: q.completedDate ? new Date(q.completedDate) : undefined,
+          deadline: q.deadline ? new Date(q.deadline) : undefined
+        }));
+
+        parsedState.collectibles = parsedState.collectibles?.map((c: any) => ({
+          ...c,
+          dateCollected: new Date(c.dateCollected)
+        })) || [];
+
+        parsedState.recentActivity = parsedState.recentActivity?.map((a: any) => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        })) || [];
+
+        // Upewnienie się, że obiekt statystyk istnieje z odpowiednimi wartościami domyślnymi
+        parsedState.statistics = parsedState.statistics || {
+          totalXPEarned: 0,
+          totalQuestsCompleted: 0,
+          longestStreak: 0,
+          currentStreak: 0,
+          averageTaskCompletionTime: 0,
+          favoriteQuestTypes: [],
+          collectiblesFound: 0,
+          healthActivitiesLogged: 0
+        };
+        
+        // Dodanie obsługi dla customHealthActivities, jeśli nie istnieje w zapisanym stanie
+        parsedState.customHealthActivities = parsedState.customHealthActivities || [];
+        // Dodanie obsługi dla unlockedAchievements, jeśli nie istnieje w zapisanym stanie
+        parsedState.unlockedAchievements = parsedState.unlockedAchievements || [];
+        // Dodanie obsługi dla unlockedSkills, jeśli nie istnieje w zapisanym stanie
+        parsedState.unlockedSkills = parsedState.unlockedSkills || [];
+        // Dodanie obsługi dla aiChatDefaultPrompt, jeśli nie istnieje w zapisanym stanie
+        parsedState.aiChatDefaultPrompt = parsedState.aiChatDefaultPrompt || '';
+        
+        // *** START FIX FOR DUPLICATE KEYS ***
+        // Defensive check for unique IDs in aiChatHistory
+        if (parsedState.aiChatHistory && Array.isArray(parsedState.aiChatHistory)) {
+          const uniqueChatHistory: ChatMessage[] = [];
+          const seenIds = new Set<string>();
+          parsedState.aiChatHistory.forEach((msg: ChatMessage) => {
+            // Ensure msg.id exists and is a string
+            if (msg.id && typeof msg.id === 'string' && !seenIds.has(msg.id)) {
+              uniqueChatHistory.push(msg);
+              seenIds.add(msg.id);
+            } else if (msg.id) {
+              console.warn("Duplicate or invalid chat message ID found in localStorage, skipping:", msg.id);
+              // Optionally, if we want to keep the message but fix the ID:
+              // uniqueChatHistory.push({ ...msg, id: crypto.randomUUID() });
+            }
+          });
+          parsedState.aiChatHistory = uniqueChatHistory;
+        } else {
+          parsedState.aiChatHistory = []; // Ensure it's an array if missing or invalid
+        }
+        // *** END FIX FOR DUPLICATE KEYS ***
+
+
+        dispatch({ type: 'LOAD_GAME_STATE', payload: parsedState });
+      } catch (error) {
+        console.error('Failed to load game state:', error);
+      }
+    }
+  }, []);
+
+  // Efekt do zapisywania stanu w localStorage przy każdej zmianie stanu
+  useEffect(() => {
+    localStorage.setItem('gameState', JSON.stringify(state));
+  }, [state]);
+
+  // Efekt do sprawdzania i odblokowywania osiągnięć
+  useEffect(() => {
+    const newUnlockedAchievements = ALL_ACHIEVEMENTS.filter(
+      (achievement) =>
+        achievement.criteria(state) && !state.unlockedAchievements.includes(achievement.id)
+    );
+
+    if (newUnlockedAchievements.length > 0) {
+      newUnlockedAchievements.forEach((achievement) => {
+        dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: achievement.id });
+        toast.success(`Achievement Unlocked: ${achievement.name}!`, {
+          description: achievement.description,
+          icon: achievement.icon,
+          duration: 5000,
+        });
+        dispatch({
+          type: 'LOG_ACTIVITY',
+          payload: {
+            id: crypto.randomUUID(),
+            type: 'achievement_unlocked',
+            description: `Achievement unlocked: "${achievement.name}"`,
+            timestamp: new Date(),
+          }
+        });
+      });
+    }
+  }, [state.player.level, state.statistics.totalQuestsCompleted, state.player.longestStreak, state.collectibles.length, state.statistics.healthActivitiesLogged, state.unlockedAchievements]);
+
+
+  // Obiekt zawierający wszystkie akcje dostępne dla komponentów
+  const actions = {
+    completeQuest: (questId: string) => dispatch({ type: 'COMPLETE_QUEST', payload: questId }),
+    addXP: (xpGain: XPGain) => dispatch({ type: 'ADD_XP', payload: xpGain }),
+    addQuest: (quest: Quest) => dispatch({ type: 'ADD_QUEST', payload: quest }),
+    updateHealth: (change: number, activity?: HealthActivity) => dispatch({ type: 'UPDATE_HEALTH', payload: { change, activity } }), // Zmieniono sygnaturę
+    setMainQuest: (title: string, description: string) => 
+      dispatch({ type: 'SET_MAIN_QUEST', payload: { title, description } }),
+    updateSeasonProgress: (progress: number) => 
+      dispatch({ type: 'UPDATE_SEASON_PROGRESS', payload: progress }),
+    addCollectible: (collectible: Collectible) =>
+      dispatch({ type: 'ADD_COLLECTIBLE', payload: collectible }),
+    updateStreak: (date = new Date()) =>
+      dispatch({ type: 'UPDATE_STREAK', payload: { date } }),
+    activateBonusXP: (multiplier: number, duration: number, reason: string) =>
+      dispatch({ type: 'ACTIVATE_BONUS_XP', payload: { multiplier, duration, reason } }),
+    updateSeason: (season: Season) => dispatch({ type: 'UPDATE_SEASON', payload: season }), // Dodana akcja
+    addHealthActivity: (activity: HealthActivity) => dispatch({ type: 'ADD_HEALTH_ACTIVITY', payload: activity }), // Dodana akcja
+    updateHealthActivity: (activity: HealthActivity) => dispatch({ type: 'UPDATE_HEALTH_ACTIVITY', payload: activity }), // Dodana akcja
+    removeHealthActivity: (activityId: string) => dispatch({ type: 'REMOVE_HEALTH_ACTIVITY', payload: activityId }), // Dodana akcja
+    logActivity: (activity: ActivityLog) => dispatch({ type: 'LOG_ACTIVITY', payload: activity }), // Nowa akcja
+    unlockAchievement: (achievementId: string) => dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: achievementId }), // Nowa akcja
+    unlockSkill: (skillId: string) => dispatch({ type: 'UNLOCK_SKILL', payload: skillId }), // Nowa akcja
+    spendSkillPoints: (amount: number) => dispatch({ type: 'SPEND_SKILL_POINTS', payload: { amount } }), // Nowa akcja
+    setActiveQuest: (questId: string | null) => dispatch({ type: 'SET_ACTIVE_QUEST', payload: questId }), // Nowa akcja
+    addHealth: (amount: number) => dispatch({ type: 'ADD_HEALTH', payload: amount }), // Nowa akcja
+    setAIChatPrompt: (prompt: string) => { // Nowa akcja do ustawiania domyślnego promptu AI
+      dispatch({ type: 'SET_AI_CHAT_PROMPT', payload: prompt });
+    },
+    openAIChat: (prompt?: string) => { // Nowa akcja do otwierania chatbota
+      if (prompt) {
+        dispatch({ type: 'SET_AI_CHAT_PROMPT', payload: prompt });
+      }
+      setIsAIChatOpen(true);
+    },
+    closeAIChat: () => { // Nowa akcja do zamykania chatbota
+      setIsAIChatOpen(false);
+      dispatch({ type: 'SET_AI_CHAT_PROMPT', payload: '' }); // Wyczyść prompt po zamknięciu
+      dispatch({ type: 'CLEAR_CHAT_HISTORY' }); // Wyczyść historię chatu po zamknięciu
+    },
+    addChatMessage: (message: ChatMessage) => dispatch({ type: 'ADD_CHAT_MESSAGE', payload: message }), // Nowa akcja
+    clearChatHistory: () => dispatch({ type: 'CLEAR_CHAT_HISTORY' }), // Nowa akcja
+  };
+
+  return (
+    <GameContext.Provider value={{ state, actions }}>
+      {children}
+      {/* Render AIChatbotDialog conditionally based on state */}
+      <AIChatbotDialog open={isAIChatOpen} setOpen={setIsAIChatOpen} defaultPrompt={state.aiChatDefaultPrompt} onCloseComplete={() => actions.closeAIChat()} />
+    </GameContext.Provider>
+  );
+}
+
+// Hook do łatwego dostępu do stanu i akcji gry
+function useGame() {
+  const context = useContext(GameContext);
+  if (context === undefined) {
+    throw new Error('useGame must be used within a GameProvider');
+  }
+  return context;
+}
+
+// src/components/PlayerStats.tsx
+// Komponent wyświetlający statystyki gracza (poziom, XP, pasek zdrowia).
+function PlayerStats() {
+  const { state } = useGame();
+  const { player, healthBar, bonusXPActive } = state;
+
+  const xpProgressPercentage = (player.xp / player.xpToNextLevel) * 100;
+  const healthPercentage = (healthBar.current / healthBar.maximum) * 100;
+
+  const getHealthBarColor = (percentage: number) => {
+    if (percentage > 70) return 'bg-green-500';
+    if (percentage > 40) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white shadow-lg shadow-gray-950/50 rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold flex items-center gap-2 text-yellow-400">
+            <Trophy size={24} className="text-yellow-500 drop-shadow-md" />
+            {player.name} - Level {player.level}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Pasek XP */}
+          <div>
+            <div className="flex justify-between items-center text-sm mb-1">
+              <span className="text-gray-300">XP Progress</span>
+              <span className="text-yellow-400 font-semibold">{player.xp} / {player.xpToNextLevel} XP</span>
+            </div>
+            <Progress value={xpProgressPercentage} className="h-2 bg-gray-700 rounded-full">
+              <motion.div
+                className={cn("h-full rounded-full", "bg-yellow-500 shadow-md shadow-yellow-700/50")}
+                initial={{ width: 0 }}
+                animate={{ width: `${xpProgressPercentage}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </Progress>
+          </div>
+
+          {/* Pasek zdrowia */}
+          <div>
+            <div className="flex justify-between items-center text-sm mb-1">
+              <span className="text-gray-300">Resilience</span>
+              <span className="text-red-400 font-semibold">{healthBar.current} / {healthBar.maximum} HP</span>
+            </div>
+            <Progress value={healthPercentage} className="h-2 bg-gray-700 rounded-full">
+              <motion.div
+                className={cn("h-full rounded-full", getHealthBarColor(healthPercentage), "shadow-md")}
+                initial={{ width: 0 }}
+                animate={{ width: `${healthPercentage}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </Progress>
+          </div>
+
+          {/* Statystyki dodatkowe */}
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <Badge variant="outline" className="border-blue-600 text-blue-300 bg-blue-950/30 flex items-center justify-center gap-1 shadow-md shadow-blue-900/30">
+              <Flame size={16} className="text-orange-400" /> Streak: {player.currentStreak}
+            </Badge>
+            <Badge variant="outline" className="border-purple-600 text-purple-300 bg-purple-950/30 flex items-center justify-center gap-1 shadow-md shadow-purple-900/30">
+              <Zap size={16} className="text-cyan-400" /> Skill Points: {player.skillPoints}
+            </Badge>
+          </div>
+
+          {/* Bonus XP Active */}
+          {bonusXPActive && new Date() < bonusXPActive.expiresAt && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="mt-2 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg text-center shadow-inner shadow-yellow-900/20"
+            >
+              <div className="text-sm text-yellow-300 font-medium flex items-center justify-center gap-2">
+                <Trophy size={18} className="text-yellow-400 animate-pulse" />
+                Bonus XP Active: {bonusXPActive.multiplier}x - {bonusXPActive.reason}
+              </div>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// src/components/EditableSeason.tsx
+// Komponent do edycji informacji o bieżącym sezonie.
+function EditableSeason() {
+  const { state, actions } = useGame();
+  const { currentSeason } = state;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: currentSeason.title,
+    description: currentSeason.description,
+    goals: [...currentSeason.goals] // Tworzymy kopię, aby nie modyfikować bezpośrednio stanu
+  });
+
+  // Obliczanie pozostałych dni do końca sezonu
+  const daysLeft = Math.ceil((currentSeason.endDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+
+  // Funkcja obsługująca zapisanie zmian w sezonie
+  const handleSave = () => {
+    // Walidacja pól tytułu i opisu
+    if (!editForm.title.trim() || !editForm.description.trim()) {
+      toast.error('Please fill in both title and description for the season.');
+      return;
+    }
+
+    // Walidacja pustych celów
+    if (editForm.goals.some(goal => !goal.trim())) {
+      toast.error('Please remove empty goals or fill them in.');
+      return;
+    }
+
+    // Tworzenie zaktualizowanego obiektu sezonu
+    const updatedSeason: Season = {
+      ...currentSeason, // Zachowujemy istniejące właściwości, takie jak ID i daty
+      title: editForm.title,
+      description: editForm.description,
+      goals: editForm.goals.filter(goal => goal.trim()) // Filtrujemy puste cele przed zapisem
+    };
+
+    // Wywołanie akcji aktualizacji sezonu w kontekście gry
+    actions.updateSeason(updatedSeason);
+    setIsEditing(false); // Wyłącz tryb edycji
+    toast.success('Season updated successfully!'); // Powiadomienie o sukcesie
+  };
+
+  // Funkcja obsługująca anulowanie edycji
+  const handleCancel = () => {
+    // Przywracamy formularz do stanu początkowego (danych z globalnego stanu gry)
+    setEditForm({
+      title: currentSeason.title,
+      description: currentSeason.description,
+      goals: [...currentSeason.goals]
+    });
+    setIsEditing(false); // Wyłącz tryb edycji
+  };
+
+  // Funkcja dodająca nowy, pusty cel
+  const addGoal = () => {
+    setEditForm(prev => ({
+      ...prev,
+      goals: [...prev.goals, ''] // Dodajemy pusty string jako nowy cel
+    }));
+  };
+
+  // Funkcja aktualizująca istniejący cel
+  const updateGoal = (index: number, value: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      goals: prev.goals.map((goal, i) => i === index ? value : goal) // Aktualizujemy cel po indeksie
+    }));
+  };
+
+  // Funkcja usuwająca cel
+  const removeGoal = (index: number) => {
+    setEditForm(prev => ({
+      ...prev,
+      goals: prev.goals.filter((_, i) => i !== index) // Usuwamy cel po indeksie
+    }));
+  };
+
+  return (
+    <Card className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white mt-4 shadow-lg shadow-gray-950/50 rounded-xl">
+      <CardHeader className="flex items-center justify-between"> {/* Zmiana tutaj */}
+        <CardTitle className="text-lg text-gray-200">Current Season</CardTitle>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="border-yellow-600 text-yellow-400 bg-yellow-950/30 shadow-md shadow-yellow-900/30">
+            <Clock size={14} className="mr-1" />
+            {daysLeft} days left
+          </Badge>
+          {!isEditing && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={() => setIsEditing(true)}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30"
+              >
+                <Edit size={16} className="mr-2" />
+                Edit
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        {isEditing ? (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title" className="text-gray-300">Season Title</Label>
+              <Input
+                id="title"
+                value={editForm.title}
+                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Season title..."
+                className="bg-gray-800 border-gray-600 text-white font-semibold focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description" className="text-gray-300">Description</Label>
+              <Textarea
+                id="description"
+                value={editForm.description}
+                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Season description..."
+                className="bg-gray-800 border-gray-600 text-gray-300 min-h-[60px] focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-200">Season Goals:</div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button onClick={addGoal} size="sm" variant="outline" className="border-green-600 text-green-400 hover:bg-green-600/20 bg-green-950/30 shadow-md shadow-green-900/30">
+                    <Plus size={14} className="mr-1" />
+                    Add Goal
+                  </Button>
+                </motion.div>
+              </div>
+              
+              <div className="space-y-2">
+                {editForm.goals.map((goal, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0 shadow-sm shadow-yellow-500" />
+                    <Input
+                      value={goal}
+                      onChange={(e) => updateGoal(index, e.target.value)}
+                      placeholder="Enter goal..."
+                      className="bg-gray-800 border-gray-600 text-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        onClick={() => removeGoal(index)}
+                        size="sm"
+                        variant="destructive"
+                        className="border-red-600 text-red-400 hover:bg-red-600/20 bg-red-950/30 flex-shrink-0 shadow-md shadow-red-900/30"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </motion.div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-2 pt-2">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button onClick={handleSave} size="sm" className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/50">
+                  <Save size={16} className="mr-2" />
+                  Save
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button onClick={handleCancel} size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+                  <X size={16} className="mr-2" />
+                  Cancel
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-semibold text-lg text-gray-100">{currentSeason.title}</h4>
+              <p className="text-sm text-gray-300 mt-1">{currentSeason.description}</p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-200">Season Goals:</div>
+              <ul className="space-y-1">
+                {currentSeason.goals.map((goal, index) => (
+                  <li key={index} className="text-sm text-gray-300 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full shadow-sm shadow-yellow-500" />
+                    {goal}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// src/components/EditableMainQuest.tsx
+// Komponent do edycji głównego zadania (Main Quest) i wyświetlania informacji o sezonie.
+function EditableMainQuest() {
+  const { state, actions } = useGame();
+  const { mainQuest } = state;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: mainQuest.title, description: mainQuest.description });
+
+  const handleSave = () => {
+    if (!editForm.title.trim() || !editForm.description.trim()) {
+      toast.error('Please fill in both title and description');
+      return;
+    }
+    actions.setMainQuest(editForm.title, editForm.description);
+    toast.success('Main quest updated!');
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditForm({ title: mainQuest.title, description: mainQuest.description });
+    setIsEditing(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.1 }}
+      className="space-y-4"
+    >
+      <Card className="bg-gradient-to-r from-purple-950 to-blue-950 border-purple-800 text-white shadow-lg shadow-purple-950/50 rounded-xl">
+        <CardHeader className="flex items-center justify-between"> {/* Zmiana tutaj */}
+          <CardTitle className="flex items-center gap-2 text-cyan-400">
+            <Sword size={28} className="text-yellow-400 drop-shadow-md" /> Main Quest
+          </CardTitle>
+          {!isEditing && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button onClick={() => setIsEditing(true)} size="sm" variant="outline" className="border-purple-600 text-purple-300 hover:bg-purple-900/20 bg-purple-950/30 shadow-md shadow-purple-900/30">
+                <Edit size={16} className="mr-2" /> Edit
+              </Button>
+            </motion.div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {isEditing ? (
+              <div className="space-y-4">
+                <div>
+                  <Input
+                    value={editForm.title}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Main quest title..."
+                    className="bg-purple-900/50 border-purple-600 text-white text-xl font-bold focus:border-cyan-500 focus:ring-cyan-500"
+                  />
+                </div>
+                <div>
+                  <Textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Main quest description..."
+                    className="bg-purple-900/50 border-purple-600 text-purple-200 min-h-[80px] focus:border-cyan-500 focus:ring-cyan-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button onClick={handleSave} size="sm" className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/50">
+                      <Save size={16} className="mr-2" /> Save
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button onClick={handleCancel} size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+                      <X size={16} className="mr-2" /> Cancel
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-xl font-bold mb-2 text-gray-100">{mainQuest.title}</h3>
+                <p className="text-purple-200">{mainQuest.description}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      {/* Komponent do edycji sezonu, umieszczony pod Main Quest */}
+      <EditableSeason />
+    </motion.div>
+  );
+}
+
+// src/components/NewQuestDialog.tsx
+// Komponent dialogowy do tworzenia nowych zadań.
+function NewQuestDialog() {
+  const { actions, state } = useGame();
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    type: 'side' as Quest['type'],
+    priority: 'medium' as Quest['priority'],
+    xpReward: 25,
+    estimatedTime: 30,
+    difficultyLevel: 2 as Quest['difficultyLevel'],
+    energyRequired: 'medium' as Quest['energyRequired'],
+    anxietyLevel: 'mild' as Quest['anxietyLevel'],
+    parentQuestId: '' // Nowe pole
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast.error('Please fill in title and description.');
+      return;
+    }
+
+    const newQuest: Quest = {
+      id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+      title: formData.title,
+      description: formData.description,
+      type: formData.type,
+      priority: formData.priority,
+      xpReward: formData.xpReward,
+      estimatedTime: formData.estimatedTime,
+      difficultyLevel: formData.difficultyLevel,
+      energyRequired: formData.energyRequired,
+      anxietyLevel: formData.anxietyLevel,
+      status: 'active',
+      createdDate: new Date(),
+      tags: [],
+      parentQuestId: formData.parentQuestId || undefined // Dodaj parentQuestId
+    };
+
+    actions.addQuest(newQuest);
+    toast.success('New quest created!', {
+      description: `"${formData.title}" has been added to your quest log.`
+    });
+
+    // Reset form and close dialog
+    setFormData({
+      title: '',
+      description: '',
+      type: 'side',
+      priority: 'medium',
+      xpReward: 25,
+      estimatedTime: 30,
+      difficultyLevel: 2,
+      energyRequired: 'medium',
+      anxietyLevel: 'mild',
+      parentQuestId: ''
+    });
+    setOpen(false);
+  };
+
+  const availableParentQuests = state.quests.filter(q => q.status === 'active' && (q.type === 'main' || q.type === 'side'));
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/50">
+            <Plus size={16} className="mr-2" /> New Quest
+          </Button>
+        </motion.div>
+      </DialogTrigger>
+      <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white rounded-xl shadow-2xl shadow-purple-950/50">
+        <DialogHeader>
+          <DialogTitle className="text-white text-2xl font-bold">Create New Quest</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-full">
+              <Label htmlFor="title" className="text-gray-300">Quest Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter quest title..."
+                className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div className="col-span-full">
+              <Label htmlFor="description" className="text-gray-300">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe your quest..."
+                className="bg-gray-800 border-gray-600 text-white min-h-[80px] focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="type" className="text-gray-300">Quest Type</Label>
+              <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as Quest['type'] }))}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                  <SelectItem value="main">Main Quest</SelectItem>
+                  <SelectItem value="side">Side Quest</SelectItem>
+                  <SelectItem value="daily">Daily Quest</SelectItem>
+                  <SelectItem value="weekly">Weekly Quest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="priority" className="text-gray-300">Priority</Label>
+              <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as Quest['priority'] }))}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="xpReward" className="text-gray-300">XP Reward</Label>
+              <Input
+                id="xpReward"
+                type="number"
+                value={formData.xpReward}
+                onChange={(e) => setFormData(prev => ({ ...prev, xpReward: parseInt(e.target.value) || 0 }))}
+                min="1"
+                max="200"
+                className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="estimatedTime" className="text-gray-300">Estimated Time (minutes)</Label>
+              <Input
+                id="estimatedTime"
+                type="number"
+                value={formData.estimatedTime}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimatedTime: parseInt(e.target.value) || 0 }))}
+                min="1"
+                max="480"
+                className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="difficultyLevel" className="text-gray-300">Difficulty Level</Label>
+              <Select value={formData.difficultyLevel?.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, difficultyLevel: parseInt(value) as Quest['difficultyLevel'] }))}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                  <SelectItem value="1">1 - Very Easy</SelectItem>
+                  <SelectItem value="2">2 - Easy</SelectItem>
+                  <SelectItem value="3">3 - Medium</SelectItem>
+                  <SelectItem value="4">4 - Hard</SelectItem>
+                  <SelectItem value="5">5 - Very Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="anxietyLevel" className="text-gray-300">Anxiety Level</Label>
+              <Select value={formData.anxietyLevel} onValueChange={(value) => setFormData(prev => ({ ...prev, anxietyLevel: value as Quest['anxietyLevel'] }))}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                  <SelectItem value="comfortable">Comfortable</SelectItem>
+                  <SelectItem value="mild">Mild</SelectItem>
+                  <SelectItem value="challenging">Challenging</SelectItem>
+                  <SelectItem value="daunting">Daunting</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="col-span-full">
+              <Label htmlFor="parentQuest" className="text-gray-300">Parent Quest (Optional)</Label>
+              <Select value={formData.parentQuestId} onValueChange={(value) => setFormData(prev => ({ ...prev, parentQuestId: value }))}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                  <SelectValue placeholder="Select a parent quest" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                  <SelectItem value="">None</SelectItem>
+                  {availableParentQuests.map(q => (
+                    <SelectItem key={q.id} value={q.id}>{q.title} ({q.type})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+                Cancel
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button type="submit" className="bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-900/50">
+                Create Quest
+              </Button>
+            </motion.div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// src/components/QuestList.tsx
+// Komponent wyświetlający listę zadań i obsługujący ich ukończenie.
+function QuestList() {
+  const { state, actions } = useGame();
+  const [filter, setFilter] = useState<'all' | 'main' | 'side' | 'daily' | 'weekly'>('all');
+  const [focusedQuestId, setFocusedQuestId] = useState<string | null>(null); // State for actively focused quest
+  const [expandedQuests, setExpandedQuests] = useState<Set<string>>(new Set()); // State for expanded parent quests
+
+  const activeQuests = state.quests.filter(q => q.status === 'active');
+
+  // Group quests by parentQuestId for hierarchical display
+  const questsByParent: { [key: string]: Quest[] } = {};
+  const rootQuests: Quest[] = [];
+
+  activeQuests.forEach(quest => {
+    if (quest.parentQuestId) {
+      if (!questsByParent[quest.parentQuestId]) {
+        questsByParent[quest.parentQuestId] = [];
+      }
+      questsByParent[quest.parentQuestId].push(quest);
+    } else {
+      rootQuests.push(quest);
+    }
+  });
+
+  // Sort root quests and then sub-quests
+  rootQuests.sort((a, b) => a.createdDate.getTime() - b.createdDate.getTime());
+  Object.values(questsByParent).forEach(subQuests => {
+    subQuests.sort((a, b) => a.createdDate.getTime() - b.createdDate.getTime());
+  });
+
+
+  const handleCompleteQuest = (questId: string) => {
+    const quest = state.quests.find(q => q.id === questId);
+    if (quest) {
+      actions.completeQuest(questId);
+      actions.logActivity({
+        id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+        type: 'quest_completed',
+        description: `Completed "${quest.title}"`,
+        timestamp: new Date(),
+        xpGained: quest.xpReward
+      });
+      toast.success(`Quest completed! +${quest.xpReward} XP`, {
+        description: quest.title,
+        duration: 3000,
+      });
+      if (focusedQuestId === questId) {
+        setFocusedQuestId(null); // Deactivate focus mode if active quest is completed
+      }
+    }
+  };
+
+  const getPriorityColor = (priority: Quest['priority']) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-700 text-red-200 border-red-500';
+      case 'high': return 'bg-orange-700 text-orange-200 border-orange-500';
+      case 'medium': return 'bg-yellow-700 text-yellow-200 border-yellow-500';
+      case 'low': return 'bg-green-700 text-green-200 border-green-500';
+      default: return 'bg-gray-700 text-gray-200 border-gray-500';
+    }
+  };
+
+  const getTypeIcon = (type: Quest['type']) => {
+    switch (type) {
+      case 'main': return <Sword size={18} className="text-purple-400" />;
+      case 'side': return <Flag size={18} className="text-blue-400" />;
+      case 'daily': return <Clock size={18} className="text-green-400" />;
+      case 'weekly': return <Clock size={18} className="text-orange-400" />;
+      default: return null;
+    }
+  };
+
+  const toggleExpand = (questId: string) => {
+    setExpandedQuests(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(questId)) {
+        newSet.delete(questId);
+      } else {
+        newSet.add(questId);
+      }
+      return newSet;
+    });
+  };
+
+  const calculateParentProgress = (parentId: string) => {
+    const children = questsByParent[parentId] || [];
+    if (children.length === 0) return 0;
+    const completedChildren = children.filter(q => q.status === 'completed').length;
+    return (completedChildren / children.length) * 100;
+  };
+
+  // Zmieniona funkcja renderująca hierarchię zadań, zwracająca płaską tabulę motion.div
+  const renderQuestHierarchy = (quests: Quest[], isSubQuest = false): React.ReactNode[] => {
+    let nodes: React.ReactNode[] = [];
+    quests.forEach(quest => {
+      // Bezpośrednio zwracamy motion.div z unikalnym kluczem
+      nodes.push(
+        <motion.div
+          key={quest.id} // Klucz jest na motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, x: -100 }}
+          transition={{ duration: 0.3 }}
+          className={cn(
+            "p-4 rounded-lg border transition-colors duration-200 shadow-md shadow-gray-950/30",
+            isSubQuest ? "ml-6 bg-gray-850 border-gray-750" : "bg-gray-800 border-gray-700",
+            focusedQuestId === quest.id ? "border-cyan-500 ring-2 ring-cyan-500 bg-blue-900/40" : "hover:border-blue-500"
+          )}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                {getTypeIcon(quest.type)}
+                <h3 className="font-semibold text-gray-100">{quest.title}</h3>
+                <Badge className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", getPriorityColor(quest.priority))}>
+                  {quest.priority.charAt(0).toUpperCase() + quest.priority.slice(1)}
+                </Badge>
+                {/* Przycisk rozwijania/zwijania dla zadań z podzadaniami */}
+                {questsByParent[quest.id] && questsByParent[quest.id].length > 0 && (
+                  <Button variant="ghost" size="icon" onClick={() => toggleExpand(quest.id)} className="ml-auto h-6 w-6">
+                    {expandedQuests.has(quest.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </Button>
+                )}
+              </div>
+              <p className="text-sm text-gray-300 mb-3">{quest.description}</p>
+
+              <div className="flex items-center gap-4 flex-wrap">
+                <Badge variant="outline" className="border-yellow-600 text-yellow-400 bg-yellow-950/30">
+                  <Zap size={14} className="mr-1" />
+                  {quest.xpReward} XP
+                </Badge>
+                {quest.estimatedTime > 0 && (
+                  <Badge variant="outline" className="border-gray-600 text-gray-400 bg-gray-950/30">
+                    <Clock size={14} className="mr-1" />
+                    {quest.estimatedTime} min
+                  </Badge>
+                )}
+                {quest.anxietyLevel && (
+                  <Badge variant="outline" className="border-gray-600 text-gray-400 bg-gray-950/30 capitalize">
+                    {quest.anxietyLevel}
+                  </Badge>
+                )}
+              </div>
+              {/* Pasek postępu dla zadań nadrzędnych */}
+              {questsByParent[quest.id] && questsByParent[quest.id].length > 0 && (
+                <div className="mt-3">
+                  <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
+                    <span>Phase Progress</span>
+                    <span>{Math.round(calculateParentProgress(quest.id))}%</span>
+                  </div>
+                  <Progress value={calculateParentProgress(quest.id)} className="h-1.5 bg-gray-700 rounded-full" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 ml-4">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
+              >
+                <Button
+                  onClick={() => handleCompleteQuest(quest.id)}
+                  className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/50 relative overflow-hidden"
+                  size="sm"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Complete
+                  <motion.span
+                    className="absolute inset-0 bg-green-400 opacity-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.5, 0] }}
+                    transition={{ duration: 0.5, times: [0, 0.5, 1] }}
+                  />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => setFocusedQuestId(focusedQuestId === quest.id ? null : quest.id)}
+                  className={cn(
+                    "shadow-md",
+                    focusedQuestId === quest.id ? "bg-cyan-700 hover:bg-cyan-600 shadow-cyan-900/50" : "bg-gray-700 hover:bg-gray-600 shadow-gray-900/50"
+                  )}
+                  size="sm"
+                >
+                  {focusedQuestId === quest.id ? <EyeOff size={16} className="mr-1" /> : <Eye size={16} className="mr-1" />}
+                  {focusedQuestId === quest.id ? 'Unfocus' : 'Focus'}
+                </Button>
+              </motion.div>
+              {/* Przycisk "Poproś AI o Pomoc" */}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => {
+                    actions.openAIChat(`Potrzebuję pomocy z zadaniem: "${quest.title}". Opis: "${quest.description}". Jak mogę to zadanie podzielić na mniejsze kroki lub przezwyciężyć prokrastynację?`);
+                  }}
+                  className="bg-blue-800 hover:bg-blue-700 shadow-md shadow-blue-900/50"
+                  size="sm"
+                >
+                  <MessageSquare size={16} className="mr-1" /> AI Help
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+      );
+      // Rekurencyjnie dodajemy dzieci, jeśli są rozwinięte
+      if (expandedQuests.has(quest.id) && questsByParent[quest.id]) {
+        nodes = nodes.concat(renderQuestHierarchy(questsByParent[quest.id], true));
+      }
+    });
+    return nodes;
+  };
+
+  // Określanie zadań do wyświetlenia na podstawie filtra i trybu focusu
+  let questsToDisplayForAnimatePresence: Quest[] = [];
+
+  if (focusedQuestId) {
+      const focusedQuest = activeQuests.find(q => q.id === focusedQuestId);
+      if (focusedQuest) {
+          // Znajdź ostatecznego rodzica zadania, lub samo zadanie, jeśli jest korzeniem
+          let currentRootQuest = focusedQuest;
+          while (currentRootQuest.parentQuestId) {
+              const parent = activeQuests.find(q => q.id === currentRootQuest.parentQuestId);
+              if (parent) {
+                  currentRootQuest = parent;
+              } else {
+                  break; // Nie powinno się zdarzyć przy poprawnych danych
+              }
+          }
+          questsToDisplayForAnimatePresence = [currentRootQuest];
+          // Upewnij się, że ścieżka do fokusowanego zadania jest rozwinięta
+          let tempQuest = focusedQuest;
+          const pathsToExpand = new Set<string>();
+          while (tempQuest.parentQuestId) {
+              pathsToExpand.add(tempQuest.parentQuestId);
+              tempQuest = activeQuests.find(q => q.id === tempQuest.parentQuestId)!;
+          }
+          setExpandedQuests(prev => new Set([...prev, ...pathsToExpand]));
+      }
+  } else {
+      // Jeśli żadne zadanie nie jest fokusowane, zastosuj regularny filtr do zadań głównych
+      questsToDisplayForAnimatePresence = filter === 'all' ? rootQuests : rootQuests.filter(q => q.type === filter);
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+    >
+      <Card className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white shadow-lg shadow-gray-950/50 rounded-xl">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-gray-200">Active Quests</CardTitle>
+            <NewQuestDialog />
+          </div>
+
+          <div className="flex gap-2 mt-4 flex-wrap">
+            {['all', 'main', 'side', 'daily', 'weekly'].map((filterType) => (
+              <motion.div key={filterType} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant={filter === filterType ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setFilter(filterType as any);
+                    setFocusedQuestId(null); // Wyczyść focus przy zmianie filtra
+                  }}
+                  className={filter === filterType ? 'bg-blue-600 shadow-md shadow-blue-900/50' : 'border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30'}
+                >
+                  {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="space-y-3">
+            <AnimatePresence mode="popLayout"> {/* Użycie mode="popLayout" dla lepszej obsługi animacji */}
+              {questsToDisplayForAnimatePresence.length === 0 ? (
+                <motion.div
+                  key="no-quests"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center py-8 text-gray-400"
+                >
+                  <Clock size={48} className="mx-auto mb-4 opacity-50 text-gray-500" />
+                  <p>No active quests in this category</p>
+                  <p className="text-sm">Time to create your next adventure!</p>
+                </motion.div>
+              ) : (
+                renderQuestHierarchy(questsToDisplayForAnimatePresence)
+              )}
+            </AnimatePresence>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// src/components/ActivityLog.tsx
+// Komponent wyświetlający historię aktywności.
+function ActivityLog() {
+  const { state } = useGame();
+  const { recentActivity } = state;
+
+  const getActivityIcon = (type: ActivityLog['type']) => {
+    switch (type) {
+      case 'quest_completed': return <CheckCircle size={16} className="text-green-400" />;
+      case 'collectible_found': return <Trophy size={16} className="text-yellow-400" />;
+      case 'health_activity': return <Heart size={16} className="text-red-400" />;
+      case 'level_up': return <Zap size={16} className="text-cyan-400" />;
+      case 'achievement_unlocked': return <Trophy size={16} className="text-purple-400" />; // Ikona dla osiągnięć
+      default: return null;
+    }
+  };
+
+  const formatTimestamp = (timestamp: Date) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3 }}
+    >
+      <Card className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white shadow-lg shadow-gray-950/50 rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-gray-200 flex items-center gap-2">
+            <Clock size={24} className="text-blue-400 drop-shadow-md" /> Activity Log
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="max-h-80 overflow-y-auto custom-scrollbar">
+          <AnimatePresence>
+            {recentActivity.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-4 text-gray-400 text-sm"
+              >
+                No recent activity. Start your journey!
+              </motion.div>
+            ) : (
+              recentActivity.map((activity) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-3 p-3 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-sm shadow-gray-950/30"
+                >
+                  {getActivityIcon(activity.type)}
+                  <div className="flex-1 text-sm text-gray-300">
+                    {activity.description}
+                    {activity.xpGained && <span className="text-yellow-400 ml-2 font-semibold">+{activity.xpGained} XP</span>}
+                  </div>
+                  <div className="text-xs text-gray-500 flex-shrink-0">
+                    {formatTimestamp(activity.timestamp)}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// src/components/AchievementsDialog.tsx
+function AchievementsDialog() {
+  const { state } = useGame();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button size="sm" variant="outline" className="border-yellow-600 text-yellow-300 hover:bg-yellow-700 bg-yellow-950/30 shadow-md shadow-yellow-900/30">
+            <Trophy size={16} className="mr-2" /> Achievements
+          </Button>
+        </motion.div>
+      </DialogTrigger>
+      <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white max-w-2xl rounded-xl shadow-2xl shadow-purple-950/50">
+        <DialogHeader>
+          <DialogTitle className="text-white text-2xl font-bold">Your Achievements</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+          {ALL_ACHIEVEMENTS.map((achievement) => {
+            const isUnlocked = state.unlockedAchievements.includes(achievement.id);
+            return (
+              <div
+                key={achievement.id}
+                className={cn(
+                  "p-4 rounded-lg border",
+                  isUnlocked
+                    ? "bg-green-900/30 border-green-700 shadow-lg shadow-green-950/20"
+                    : "bg-gray-800 border-gray-700 opacity-60"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{achievement.icon}</span>
+                  <div>
+                    <h4 className="font-semibold text-lg">
+                      {achievement.name} {isUnlocked && <CheckCircle size={16} className="inline-block ml-2 text-green-400" />}
+                    </h4>
+                    <p className="text-sm text-gray-300">{achievement.description}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} className="bg-gray-600 hover:bg-gray-700">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// src/components/SkillTreeDialog.tsx
+// Komponent dialogowy dla drzewka umiejętności
+function SkillTreeDialog() {
+  const { state, actions } = useGame();
+  const [open, setOpen] = useState(false);
+
+  const handleUnlockSkill = (skillId: string, cost: number) => {
+    if (state.player.skillPoints >= cost) {
+      actions.spendSkillPoints(cost);
+      actions.unlockSkill(skillId);
+      toast.success(`Skill Unlocked: ${ALL_SKILLS.find(s => s.id === skillId)?.name}!`, {
+        description: ALL_SKILLS.find(s => s.id === skillId)?.description,
+        icon: ALL_SKILLS.find(s => s.id === skillId)?.icon,
+        duration: 5000,
+      });
+    } else {
+      toast.error('Not enough Skill Points!', {
+        description: `You need ${cost - state.player.skillPoints} more Skill Points to unlock this.`,
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button size="sm" variant="outline" className="border-purple-600 text-purple-300 hover:bg-purple-700 bg-purple-950/30 shadow-md shadow-purple-900/30">
+            <Brain size={16} className="mr-2" /> Skills
+          </Button>
+        </motion.div>
+      </DialogTrigger>
+      <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white max-w-2xl rounded-xl shadow-2xl shadow-purple-950/50">
+        <DialogHeader>
+          <DialogTitle className="text-white text-2xl font-bold">Skill Tree</DialogTitle>
+          <p className="text-gray-400 text-sm">Spend your <span className="text-cyan-400 font-semibold">{state.player.skillPoints} Skill Points</span> to unlock powerful neuro-enhancements!</p>
+        </DialogHeader>
+        <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+          {ALL_SKILLS.map((skill) => {
+            const isUnlocked = state.unlockedSkills.includes(skill.id);
+            const canAfford = state.player.skillPoints >= skill.cost;
+            return (
+              <div
+                key={skill.id}
+                className={cn(
+                  "p-4 rounded-lg border flex items-center gap-4",
+                  isUnlocked
+                    ? "bg-blue-900/30 border-blue-700 shadow-lg shadow-blue-950/20"
+                    : "bg-gray-800 border-gray-700 opacity-60",
+                  !isUnlocked && canAfford && "hover:bg-gray-700 cursor-pointer"
+                )}
+                onClick={!isUnlocked && canAfford ? () => handleUnlockSkill(skill.id, skill.cost) : undefined}
+              >
+                <span className="text-3xl flex-shrink-0">{skill.icon}</span>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    {skill.name}
+                    {isUnlocked && <CheckCircle size={16} className="text-green-400" />}
+                  </h4>
+                  <p className="text-sm text-gray-300">{skill.description}</p>
+                </div>
+                {!isUnlocked && (
+                  <Badge className={cn(
+                    "px-3 py-1 text-sm font-semibold",
+                    canAfford ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                  )}>
+                    Cost: {skill.cost} SP
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} className="bg-gray-600 hover:bg-gray-700">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// src/components/ConfirmationDialog.tsx
+// Nowy komponent dialogowy do potwierdzeń
+interface ConfirmationDialogProps {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+  confirmText?: string;
+  cancelText?: string;
+}
+
+const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
+  open,
+  setOpen,
+  title,
+  description,
+  onConfirm,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+}) => {
+  const handleConfirm = () => {
+    onConfirm();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white rounded-xl shadow-2xl shadow-purple-950/50 max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-white text-xl flex items-center gap-2">
+            <Info size={20} className="text-yellow-400" /> {title}
+          </DialogTitle>
+          <DialogDescription className="text-gray-300">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+            {cancelText}
+          </Button>
+          <Button onClick={handleConfirm} className="bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50">
+            {confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
+// src/components/AIChatbotDialog.tsx
+// Komponent dialogowy dla chatbota AI.
+interface AIChatbotDialogProps {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  defaultPrompt: string;
+  onCloseComplete: () => void; // Callback when dialog is fully closed
+}
+
+const AIChatbotDialog: React.FC<AIChatbotDialogProps> = ({ open, setOpen, defaultPrompt, onCloseComplete }) => {
+  const { state, actions } = useGame(); // Corrected: Destructure state directly
+  const [input, setInput] = useState('');
+  // const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'ai', text: string }[]>([]); // Moved to global state
+  const [isLoading, setIsLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [state.aiChatHistory]); // Corrected: Use global chat history
+
+  // Set default prompt when dialog opens or defaultPrompt prop changes
+  useEffect(() => {
+    if (open && defaultPrompt) {
+      setInput(defaultPrompt);
+    } else if (!open) {
+      // Clear input when dialog closes, chat history is cleared by onCloseComplete
+      setInput('');
+    }
+  }, [open, defaultPrompt]);
+
+  const parseAndExecuteCommand = (responseText: string) => {
+    let commandExecuted = false;
+
+    // Regex for ADD_QUEST
+    const addQuestRegex = /\[COMMAND:ADD_QUEST\]\[TITLE:(.*?)\]\[DESC:(.*?)\](?:\[TYPE:(main|side|daily|weekly)\])?(?:\[XP:(\d+)\])?(?:\[PRIORITY:(low|medium|high|urgent)\])?(?:\[PARENT:([a-zA-Z0-9-]+)\])?/g;
+    let match;
+    while ((match = addQuestRegex.exec(responseText)) !== null) {
+      const [, title, description, type, xpRewardStr, priority, parentId] = match;
+      const xpReward = xpRewardStr ? parseInt(xpRewardStr) : 25;
+      let validParentId: string | undefined = undefined;
+      if (parentId) {
+        const parentQuestExists = state.quests.some(q => q.id === parentId.trim() && q.status === 'active');
+        if (parentQuestExists) {
+          validParentId = parentId.trim();
+        } else {
+          toast.error(`AI tried to add a quest with an invalid parent ID: ${parentId.trim()}`, { duration: 5000 });
+        }
+      }
+
+      const newQuest: Quest = {
+        id: crypto.randomUUID(),
+        title: title.trim(),
+        description: description.trim(),
+        type: (type?.trim() as Quest['type']) || 'side',
+        xpReward: xpReward,
+        priority: (priority?.trim() as Quest['priority']) || 'medium',
+        status: 'active',
+        createdDate: new Date(),
+        estimatedTime: 30,
+        difficultyLevel: 2,
+        energyRequired: 'medium',
+        anxietyLevel: 'comfortable',
+        tags: ['AI-generated'],
+        parentQuestId: validParentId
+      };
+      actions.addQuest(newQuest);
+      toast.success(`Zadanie dodane przez AI: "${newQuest.title}"`, { duration: 3000 });
+      commandExecuted = true;
+    }
+
+    // Regex for SET_MAIN_QUEST
+    const setMainQuestRegex = /\[COMMAND:SET_MAIN_QUEST\]\[TITLE:(.*?)\]\[DESC:(.*?)\]/;
+    const mainQuestMatch = responseText.match(setMainQuestRegex);
+    if (mainQuestMatch) {
+      const [, title, description] = mainQuestMatch;
+      actions.setMainQuest(title.trim(), description.trim());
+      toast.success(`Główne zadanie zaktualizowane przez AI: "${title.trim()}"`, { duration: 3000 });
+      commandExecuted = true;
+    }
+
+    // Regex for UPDATE_SEASON
+    const updateSeasonRegex = /\[COMMAND:UPDATE_SEASON\]\[TITLE:(.*?)\]\[DESC:(.*?)\](?:\[GOALS:((?:[^|\]]+\|?)*)\])?/;
+    const seasonMatch = responseText.match(updateSeasonRegex);
+    if (seasonMatch) {
+      const [, title, description, goalsStr] = seasonMatch;
+      const goals = goalsStr ? goalsStr.split('|').map(goal => goal.trim()).filter(Boolean) : state.currentSeason.goals;
+      const updatedSeason: Season = {
+        ...state.currentSeason,
+        title: title.trim(),
+        description: description.trim(),
+        goals: goals
+      };
+      actions.updateSeason(updatedSeason);
+      toast.success(`Sezon zaktualizowany przez AI: "${title.trim()}"`, { duration: 3000 });
+      commandExecuted = true;
+    }
+
+    // Regex for ADD_HEALTH_ACTIVITY
+    const addHealthActivityRegex = /\[COMMAND:ADD_HEALTH_ACTIVITY\]\[NAME:(.*?)\]\[DESC:(.*?)\]\[CHANGE:(-?\d+)\]\[CATEGORY:(physical|mental|social|creative)\]\[DURATION:(\d+)\]\[ICON:(.*?)\]/;
+    const addHealthMatch = responseText.match(addHealthActivityRegex);
+    if (addHealthMatch) {
+      const [, name, description, healthChangeStr, category, durationStr, icon] = addHealthMatch;
+      const newActivity: HealthActivity = {
+        id: `custom_activity_${crypto.randomUUID()}`,
+        name: name.trim(),
+        description: description.trim(),
+        healthChange: parseInt(healthChangeStr),
+        category: category.trim() as HealthActivity['category'],
+        duration: parseInt(durationStr),
+        icon: icon.trim()
+      };
+      actions.addHealthActivity(newActivity);
+      toast.success(`Aktywność zdrowotna dodana przez AI: "${newActivity.name}"`, { duration: 3000 });
+      commandExecuted = true;
+    }
+
+    // Regex for UPDATE_HEALTH_ACTIVITY
+    const updateHealthActivityRegex = /\[COMMAND:UPDATE_HEALTH_ACTIVITY\]\[ID:([a-zA-Z0-9_-]+)\](?:\[NAME:(.*?)\])?(?:\[DESC:(.*?)\])?(?:\[CHANGE:(-?\d+)\])?(?:\[CATEGORY:(physical|mental|social|creative)\])?(?:\[DURATION:(\d+)\])?(?:\[ICON:(.*?)\])?/;
+    const updateHealthMatch = responseText.match(updateHealthActivityRegex);
+    if (updateHealthMatch) {
+      const [, id, name, description, healthChangeStr, category, durationStr, icon] = updateHealthMatch;
+      const existingActivity = [...DEFAULT_HEALTH_ACTIVITIES, ...state.customHealthActivities].find(a => a.id === id.trim());
+      if (existingActivity) {
+        const updatedActivity: HealthActivity = {
+          ...existingActivity,
+          name: name ? name.trim() : existingActivity.name,
+          description: description ? description.trim() : existingActivity.description,
+          healthChange: healthChangeStr ? parseInt(healthChangeStr) : existingActivity.healthChange,
+          category: category ? (category.trim() as HealthActivity['category']) : existingActivity.category,
+          duration: durationStr ? parseInt(durationStr) : existingActivity.duration,
+          icon: icon ? icon.trim() : existingActivity.icon
+        };
+        actions.updateHealthActivity(updatedActivity);
+        toast.success(`Aktywność zdrowotna zaktualizowana przez AI: "${updatedActivity.name}"`, { duration: 3000 });
+        commandExecuted = true;
+      } else {
+        toast.error(`AI próbowało zaktualizować nieistniejącą aktywność zdrowotną o ID: ${id.trim()}`, { duration: 5000 });
+      }
+    }
+
+    // Regex for REMOVE_HEALTH_ACTIVITY
+    const removeHealthActivityRegex = /\[COMMAND:REMOVE_HEALTH_ACTIVITY\]\[ID:([a-zA-Z0-9_-]+)\]/;
+    const removeHealthMatch = responseText.match(removeHealthActivityRegex);
+    if (removeHealthMatch) {
+      const [, id] = removeHealthMatch;
+      const isCustomActivity = state.customHealthActivities.some(a => a.id === id.trim());
+      if (isCustomActivity) {
+        actions.removeHealthActivity(id.trim());
+        toast.success(`Aktywność zdrowotna usunięta przez AI: "${id.trim()}"`, { duration: 3000 });
+        commandExecuted = true;
+      } else {
+        toast.error(`AI próbowało usunąć domyślną lub nieistniejącą aktywność zdrowotną o ID: ${id.trim()}`, { duration: 5000 });
+      }
+    }
+
+    return commandExecuted;
+  };
+
+  const handleSendMessage = async () => {
+    if (input.trim() === '') return;
+
+    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: input };
+    actions.addChatMessage(userMessage); // Use global action
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Przygotowanie kontekstu gry dla AI
+      const gameContext = {
+        player: {
+          name: state.player.name,
+          level: state.player.level,
+          xp: state.player.xp,
+          xpToNextLevel: state.player.xpToNextLevel,
+          currentStreak: state.player.currentStreak,
+          skillPoints: state.player.skillPoints,
+        },
+        mainQuest: state.mainQuest,
+        currentSeason: {
+          id: state.currentSeason.id,
+          title: state.currentSeason.title,
+          description: state.currentSeason.description,
+          startDate: state.currentSeason.startDate.toISOString(), // Convert Date to ISO string
+          endDate: state.currentSeason.endDate.toISOString(), // Convert Date to ISO string
+          progress: state.currentSeason.progress,
+          goals: state.currentSeason.goals,
+          daysLeft: Math.ceil((state.currentSeason.endDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24)),
+        },
+        activeQuests: state.quests.filter(q => q.status === 'active').map(q => ({
+          id: q.id,
+          title: q.title,
+          description: q.description,
+          type: q.type,
+          priority: q.priority,
+          xpReward: q.xpReward,
+          parentQuestId: q.parentQuestId,
+        })),
+        healthBar: state.healthBar,
+        recentActivity: state.recentActivity.slice(0, 5).map(a => ({
+          description: a.description,
+          type: a.type,
+          timestamp: a.timestamp.toLocaleString(),
+        })),
+        customHealthActivities: state.customHealthActivities, // Include custom health activities
+        defaultHealthActivities: DEFAULT_HEALTH_ACTIVITIES.map(a => ({ // Include default health activities
+          id: a.id,
+          name: a.name,
+          description: a.description,
+          healthChange: a.healthChange,
+          category: a.category,
+          duration: a.duration,
+          icon: a.icon
+        })),
+        unlockedSkills: state.unlockedSkills.map(skillId => ALL_SKILLS.find(s => s.id === skillId)?.name || skillId)
+      };
+
+      // Prepare chat history for AI model
+      const chatHistoryForAI = state.aiChatHistory.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.text }]
+      }));
+
+      const prompt = `Jesteś pomocnym asystentem gry dla "My Life: RPG Quest Log". Przeanalizuj poniższy stan gry i odpowiedz na zapytanie użytkownika. Udzielaj zwięzłych i zachęcających porad, spostrzeżeń lub informacji w oparciu o kontekst gry. Jeśli użytkownik prosi o modyfikację stanu gry, użyj odpowiednich komend. Nie wymyślaj informacji, które nie są bezpośrednio związane ze stanem gry.
+
+Dostępne komendy do modyfikacji stanu gry (używaj tylko, jeśli użytkownik wyraźnie o to poprosi):
+
+1.  **Dodaj nowe zadanie:**
+    [COMMAND:ADD_QUEST][TITLE:Tytuł zadania][DESC:Opis zadania][TYPE:side][XP:50][PRIORITY:medium][PARENT:parent_quest_id]
+    -   TYPE: main, side, daily, weekly (domyślnie: side)
+    -   XP: liczba (domyślnie: 25)
+    -   PRIORITY: low, medium, high, urgent (domyślnie: medium)
+    -   PARENT: ID istniejącego zadania (opcjonalne)
+    -   Przykład: "[COMMAND:ADD_QUEST][TITLE:Napisz raport][DESC:Ukończ raport kwartalny][TYPE:main][XP:100][PRIORITY:urgent]"
+
+2.  **Ustaw Główne Zadanie:**
+    [COMMAND:SET_MAIN_QUEST][TITLE:Nowy tytuł głównego zadania][DESC:Nowy opis głównego zadania]
+    -   Przykład: "[COMMAND:SET_MAIN_QUEST][TITLE:Zostań mistrzem produktywności][DESC:Opanuj wszystkie techniki zarządzania czasem i zadaniami]"
+
+3.  **Zaktualizuj Sezon:**
+    [COMMAND:UPDATE_SEASON][TITLE:Nowy tytuł sezonu][DESC:Nowy opis sezonu][GOALS:Cel 1|Cel 2|Cel 3]
+    -   GOALS: Cele oddzielone znakiem '|' (opcjonalne, jeśli nie podano, cele pozostają niezmienione)
+    -   Przykład: "[COMMAND:UPDATE_SEASON][TITLE:Sezon Wzrostu][DESC:Skoncentruj się na rozwoju osobistym][GOALS:Czytaj 3 książki|Ucz się nowego języka]"
+
+4.  **Dodaj Aktywność Zdrowotną (niestandardową):**
+    [COMMAND:ADD_HEALTH_ACTIVITY][NAME:Nazwa aktywności][DESC:Opis][CHANGE:15][CATEGORY:mental][DURATION:30][ICON:🧘]
+    -   CHANGE: liczba całkowita (dodatnia dla boosta, ujemna dla uczciwego śledzenia)
+    -   CATEGORY: physical, mental, social, creative
+    -   DURATION: liczba (minuty)
+    -   ICON: dowolny emoji lub krótki tekst
+    -   Przykład: "[COMMAND:ADD_HEALTH_ACTIVITY][NAME:Szybka drzemka][DESC:15 minut regeneracji][CHANGE:10][CATEGORY:physical][DURATION:15][ICON:😴]"
+
+5.  **Zaktualizuj Aktywność Zdrowotną (niestandardową lub domyślną):**
+    [COMMAND:UPDATE_HEALTH_ACTIVITY][ID:activity_id][NAME:Nowa nazwa](...inne opcjonalne pola)
+    -   ID: ID istniejącej aktywności (domyślnej lub niestandardowej)
+    -   Przykład: "[COMMAND:UPDATE_HEALTH_ACTIVITY][ID:meditation][NAME:Głęboka medytacja][CHANGE:20]"
+
+6.  **Usuń Aktywność Zdrowotną (tylko niestandardowe):**
+    [COMMAND:REMOVE_HEALTH_ACTIVITY][ID:activity_id]
+    -   ID: ID niestandardowej aktywności (nie można usuwać domyślnych)
+    -   Przykład: "[COMMAND:REMOVE_HEALTH_ACTIVITY][ID:custom_activity_123]"
+
+Jeśli dodajesz wiele zadań lub wykonujesz wiele komend, umieść każde polecenie w nowej linii. Nie dodawaj żadnego innego tekstu przed ani po tych poleceniach, jeśli wydajesz komendy.
+
+Aktualny stan gry (JSON):
+${JSON.stringify(gameContext, null, 2)}
+
+Zapytanie użytkownika: "${userMessage.text}"`;
+
+      const payload = { contents: [...chatHistoryForAI, { role: "user", parts: [{ text: prompt }] }] }; // Send full chat history
+      const apiKey = ""; // Canvas runtime will provide this
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      let aiResponseText = "Przepraszam, nie mogłem przetworzyć Twojej prośby. Spróbuj ponownie.";
+
+      if (result.candidates && result.candidates.length > 0 &&
+          result.candidates[0].content && result.candidates[0].content.parts &&
+          result.candidates[0].content.parts.length > 0) {
+        aiResponseText = result.candidates[0].content.parts[0].text;
+        const commandExecuted = parseAndExecuteCommand(aiResponseText);
+        if (commandExecuted) {
+          // If a command was executed, provide a generic success message
+          // as specific toasts are already handled by parseAndExecuteCommand
+          aiResponseText = "Komenda(y) wykonana(e) pomyślnie!"; 
+        }
+      }
+
+      actions.addChatMessage({ id: crypto.randomUUID(), role: 'ai', text: aiResponseText }); // Use global action
+
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+      actions.addChatMessage({ id: crypto.randomUUID(), role: 'ai', text: 'Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.' }); // Use global action
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDialogClose = () => {
+    setOpen(false); // Close the Radix Dialog
+    onCloseComplete(); // Notify parent (GameProvider) to clear global state
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleDialogClose}> {/* Użyj handleDialogClose tutaj */}
+      <DialogTrigger asChild>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button className="bg-cyan-600 hover:bg-cyan-700 shadow-lg shadow-cyan-900/50 text-white font-bold py-2 px-4 rounded-full flex items-center gap-2">
+              <MessageSquare size={20} /> AI Companion
+            </Button>
+          </motion.div>
+      </DialogTrigger>
+      <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-cyan-700 text-white rounded-xl shadow-2xl shadow-cyan-950/50 flex flex-col h-auto max-h-[90vh] w-full max-w-[700px] p-0"> {/* Zmieniono h-[80vh] na h-auto max-h-[90vh] */}
+        <DialogHeader className="p-6 pb-4 border-b border-gray-700">
+          <DialogTitle className="text-white text-2xl font-bold flex items-center gap-2">
+            <MessageSquare size={24} className="text-cyan-400" /> AI Companion
+          </DialogTitle>
+          <DialogDescription className="text-gray-400">Ask about your quests, stats, or get some motivation!</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+          <AnimatePresence>
+            {state.aiChatHistory.map((msg) => ( // Corrected: Use global chat history and msg.id for key
+              <motion.div
+                key={msg.id} // Corrected: Use unique ID as key
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className={cn(
+                  "p-3 rounded-lg max-w-[80%] relative shadow-md",
+                  msg.role === 'user'
+                    ? "ml-auto bg-blue-700 text-white rounded-br-none"
+                    : "mr-auto bg-gray-700 text-gray-100 rounded-bl-none"
+                )}
+              >
+                <div className="font-semibold text-xs mb-1 opacity-80">
+                  {msg.role === 'user' ? 'You' : 'AI Assistant'}
+                </div>
+                {msg.text}
+              </motion.div>
+            ))}
+            {isLoading && (
+              <motion.div
+                key="loading-indicator"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-3 rounded-lg bg-gray-700 text-gray-300 max-w-[80%] mr-auto rounded-bl-none"
+              >
+                <div className="font-semibold text-xs mb-1 opacity-80">AI Assistant</div>
+                <div className="animate-pulse">Thinking...</div>
+              </motion.div>
+            )}
+            <div ref={chatEndRef} />
+          </AnimatePresence>
+        </div>
+        <div className="p-6 pt-4 border-t border-gray-700 flex items-center gap-3">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Ask your AI companion..."
+            className="flex-1 bg-gray-800 border-gray-600 text-white focus:border-cyan-500 focus:ring-cyan-500"
+            disabled={isLoading}
+          />
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button onClick={handleSendMessage} disabled={isLoading} className="bg-cyan-600 hover:bg-cyan-700 shadow-md shadow-cyan-900/50">
+              Send
+            </Button>
+          </motion.div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+// src/components/ManageHealthActivitiesDialog.tsx
+// Komponent dialogowy do zarządzania niestandardowymi aktywnościami zdrowotnymi.
+function ManageHealthActivitiesDialog() {
+  const { state, actions } = useGame();
+  const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState<string | null>(null); // ID edytowanej aktywności lub null
+  const [formData, setFormData] = useState<HealthActivity>({
+    id: '',
+    name: '',
+    description: '',
+    healthChange: 0,
+    category: 'physical',
+    duration: 0,
+    icon: '✨'
+  });
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [activityToDeleteId, setActivityToDeleteId] = useState<string | null>(null);
+
+  // Resetowanie formularza przy otwieraniu/zamykaniu dialogu lub zmianie trybu edycji
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+      setIsEditing(null);
+    }
+  }, [open]);
+
+  const resetForm = () => {
+    setFormData({
+      id: '',
+      name: '',
+      description: '',
+      healthChange: 0,
+      category: 'physical',
+      duration: 0,
+      icon: '✨'
+    });
+  };
+
+  const handleEditClick = (activity: HealthActivity) => {
+    setFormData(activity);
+    setIsEditing(activity.id);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name.trim() || !formData.description.trim()) {
+      toast.error('Please fill in name and description.');
+      return;
+    }
+    if (formData.healthChange === 0) {
+      toast.error('Health change cannot be zero.');
+      return;
+    }
+
+    if (isEditing) {
+      actions.updateHealthActivity(formData);
+      toast.success('Health activity updated!', { description: `"${formData.name}" has been updated.` });
+    } else {
+      const newActivity: HealthActivity = {
+        ...formData,
+        id: `custom_activity_${crypto.randomUUID()}` // Ensure custom activities have a distinct ID prefix
+      };
+      actions.addHealthActivity(newActivity);
+      toast.success('New health activity added!', { description: `"${newActivity.name}" has been added.` });
+    }
+
+    resetForm();
+    setIsEditing(null);
+  };
+
+  const handleDeleteClick = (activityId: string) => {
+    setActivityToDeleteId(activityId);
+    setConfirmDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (activityToDeleteId) {
+      actions.removeHealthActivity(activityToDeleteId);
+      toast.success('Activity deleted.');
+      if (isEditing === activityToDeleteId) {
+        resetForm();
+        setIsEditing(null);
+      }
+      setActivityToDeleteId(null);
+    }
+  };
+
+  // Łączymy domyślne aktywności z niestandardowymi dla wyświetlania w dialogu
+  const allActivities = [...DEFAULT_HEALTH_ACTIVITIES, ...(state.customHealthActivities || [])];
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+              <Settings size={16} className="mr-2" /> Manage Activities
+            </Button>
+          </motion.div>
+        </DialogTrigger>
+        <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white max-w-2xl rounded-xl shadow-2xl shadow-purple-950/50">
+          <DialogHeader>
+            <DialogTitle className="text-white text-2xl font-bold">Manage Health Activities</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Formularz dodawania/edycji aktywności */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-purple-400">{isEditing ? 'Edit Activity' : 'Add New Activity'}</h3>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div>
+                  <Label htmlFor="name" className="text-gray-300">Name</Label>
+                  <Input id="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <Label htmlFor="description" className="text-gray-300">Description</Label>
+                  <Textarea id="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} className="bg-gray-800 border-gray-600 text-white min-h-[60px] focus:border-blue-500 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <Label htmlFor="healthChange" className="text-gray-300">Health Change</Label>
+                  <Input id="healthChange" type="number" value={formData.healthChange} onChange={(e) => setFormData(prev => ({ ...prev, healthChange: parseInt(e.target.value) || 0 }))} className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <Label htmlFor="category" className="text-gray-300">Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as HealthActivity['category'] }))}>
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                      <SelectItem value="physical">Physical</SelectItem>
+                      <SelectItem value="mental">Mental</SelectItem>
+                      <SelectItem value="social">Social</SelectItem>
+                      <SelectItem value="creative">Creative</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="duration" className="text-gray-300">Duration (minutes)</Label>
+                  <Input id="duration" type="number" value={formData.duration} onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))} className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <Label htmlFor="icon" className="text-gray-300">Icon (Emoji or Text)</Label>
+                  <Input id="icon" value={formData.icon} onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))} className="bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500" />
+                </div>
+                <div className="flex justify-end space-x-2 pt-2">
+                  {isEditing && (
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button type="button" variant="outline" onClick={() => { resetForm(); setIsEditing(null); }} className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+                        Cancel Edit
+                      </Button>
+                    </motion.div>
+                  )}
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button type="submit" className="bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-900/50">
+                      {isEditing ? 'Update Activity' : 'Add Activity'}
+                    </Button>
+                  </motion.div>
+                </div>
+              </form>
+            </div>
+
+            {/* Lista aktywności */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-blue-400">Your Activities</h3>
+              <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {allActivities.length === 0 ? (
+                  <p className="text-gray-400 text-sm">No activities defined yet. Add some!</p>
+                ) : (
+                  allActivities.map(activity => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex items-center justify-between p-3 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-md shadow-gray-950/30"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{activity.icon}</span>
+                        <div>
+                          <div className="font-medium text-gray-100">{activity.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {activity.healthChange > 0 ? '+' : ''}{activity.healthChange} HP
+                            {activity.duration > 0 && ` • ${activity.duration}m`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button size="sm" variant="outline" onClick={() => handleEditClick(activity)} className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800 shadow-md shadow-gray-900/30">
+                            <Edit size={14} />
+                          </Button>
+                        </motion.div>
+                        {/* Umożliwiamy usuwanie tylko niestandardowych aktywności (te z id zaczynającym się od 'custom_activity_') */}
+                        {activity.id.startsWith('custom_activity_') && (
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteClick(activity.id)} className="shadow-md shadow-red-900/30">
+                              <Trash2 size={14} />
+                            </Button>
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <ConfirmationDialog
+        open={confirmDialogOpen}
+        setOpen={setConfirmDialogOpen}
+        title="Confirm Deletion"
+        description="Are you sure you want to delete this activity? This action cannot be undone."
+        onConfirm={confirmDelete}
+        confirmText="Delete"
+      />
+    </>
+  );
+}
+
+// src/components/HealthActions.tsx
+// Komponent wyświetlający pasek zdrowia i akcje zdrowotne.
+function HealthActions() {
+  const { state, actions } = useGame();
+  const { healthBar } = state;
+  const [showPositive, setShowPositive] = useState(true);
+
+  // Łączymy domyślne aktywności z niestandardowymi zdefiniowanymi przez użytkownika
+  const customActivities = state.customHealthActivities || [];
+  const allActivities = [...DEFAULT_HEALTH_ACTIVITIES, ...customActivities];
+  
+  // Filtrowanie aktywności na pozytywne i negatywne
+  const positiveActivities = allActivities.filter(a => a.healthChange > 0);
+  const negativeActivities = allActivities.filter(a => a.healthChange < 0);
+  
+  // Wybieramy, które aktywności pokazać na podstawie stanu showPositive
+  const currentActivities = showPositive ? positiveActivities : negativeActivities;
+
+  // Funkcja obsługująca zmianę poziomu zdrowia po wykonaniu aktywności
+  const handleHealthChange = (change: number, activityName: string, activity: HealthActivity) => {
+    actions.updateHealth(change, activity); // Aktualizacja paska zdrowia
+    
+    // Powiadomienie toast
+    const message = change > 0 ? `+${change} Resilience` : `${change} Resilience`;
+    toast.success(message, {
+      description: `${activityName} (${activity.category})`,
+      duration: 2000,
+    });
+
+    // Logowanie aktywności
+    actions.logActivity({
+      id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+      type: 'health_activity',
+      description: `Logged "${activityName}" (${change > 0 ? '+' : ''}${change} HP)`,
+      timestamp: new Date(),
+    });
+
+    // Szansa na znalezienie przedmiotu kolekcjonerskiego dla pozytywnych aktywności
+    // Tylko jeśli poziom gracza jest >= 5
+    if (change > 0 && Math.random() < 0.1 && state.player.level >= 5) {
+      const collectible = {
+        id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+        name: `${activity.category} Insight`, // Nazwa przedmiotu kolekcjonerskiego bazująca na kategorii
+        type: 'insight' as const, // Typ przedmiotu
+        xpValue: 20, // Wartość XP
+        rarity: 'common' as const, // Rzadkość
+        description: `You gained insight from your ${activityName.toLowerCase()} activity.`,
+        category: 'Health & Wellness',
+        dateCollected: new Date()
+      };
+      actions.addCollectible(collectible); // Dodanie przedmiotu kolekcjonerskiego
+      toast.success('Insight collected!', {
+        description: collectible.name,
+        duration: 3000,
+      });
+      actions.logActivity({
+        id: crypto.randomUUID(), // Użycie crypto.randomUUID()
+        type: 'collectible_found',
+        description: `Found ${collectible.name}!`,
+        timestamp: new Date(),
+        xpGained: collectible.xpValue
+      });
+    }
+  };
+
+  // Funkcja określająca status zdrowia i jego kolor/ikonę
+  const getHealthStatus = () => {
+    if (healthBar.current >= 80) return { status: 'Excellent', color: 'text-green-400', icon: '💪' };
+    if (healthBar.current >= 60) return { status: 'Good', color: 'text-blue-400', icon: '👍' };
+    if (healthBar.current >= 40) return { status: 'Fair', color: 'text-yellow-400', icon: '😐' };
+    if (healthBar.current >= 20) return { status: 'Low', color: 'text-orange-400', icon: '😟' };
+    return { status: 'Critical', color: 'text-red-400', icon: '🆘' };
+  };
+
+  const healthStatus = getHealthStatus();
+
+  // Quick Actions for positive health activities
+  const quickPositiveActions = positiveActivities.slice(0, 3);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.15 }}
+    >
+      <Card className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white shadow-lg shadow-gray-950/50 rounded-xl">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-gray-200">
+              <Heart size={24} className="text-red-400 drop-shadow-md" />
+              Resilience Actions
+            </CardTitle>
+            <Badge className={`${healthStatus.color} bg-transparent border-current text-sm font-semibold`}>
+              {healthStatus.icon} {healthStatus.status}
+            </Badge>
+          </div>
+          
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                size="sm"
+                variant={showPositive ? "default" : "outline"}
+                onClick={() => setShowPositive(true)}
+                className={showPositive ? "bg-green-600 hover:bg-green-700 shadow-md shadow-green-900/50" : "border-green-600 text-green-400 hover:bg-green-900/20 bg-green-950/30"}
+              >
+                <TrendingUp size={14} className="mr-1" />
+                Boost
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                size="sm"
+                variant={!showPositive ? "default" : "outline"}
+                onClick={() => setShowPositive(false)}
+                className={!showPositive ? "bg-red-600 hover:bg-red-700 shadow-md shadow-red-900/50" : "border-red-600 text-red-400 hover:bg-red-900/20 bg-red-950/30"}
+              >
+                <TrendingDown size={14} className="mr-1" />
+                Honest Track
+              </Button>
+            </motion.div>
+            <ManageHealthActivitiesDialog /> {/* Przycisk otwierający dialog zarządzania aktywnościami */}
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          {showPositive && quickPositiveActions.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-gray-300 mb-2">Quick Actions:</h4>
+              <div className="flex gap-2 flex-wrap">
+                {quickPositiveActions.map(activity => (
+                  <motion.div key={`quick-${activity.id}`} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={() => handleHealthChange(activity.healthChange, activity.name, activity)}
+                      className="h-auto p-2 flex items-center gap-1 bg-green-800 hover:bg-green-700 shadow-sm shadow-green-900/30 text-xs"
+                    >
+                      <span className="text-lg">{activity.icon}</span>
+                      {activity.name}
+                    </Button>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            {currentActivities.map((activity) => (
+              <motion.div key={activity.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => handleHealthChange(activity.healthChange, activity.name, activity)}
+                  className={`h-auto p-3 flex flex-col items-center gap-2 transition-all duration-200 rounded-lg shadow-md ${
+                    activity.healthChange > 0 
+                      ? 'bg-green-700 hover:bg-green-600 shadow-green-900/50' 
+                      : 'bg-red-700 hover:bg-red-600 shadow-red-900/50'
+                  }`}
+                  disabled={activity.healthChange < 0 && healthBar.current <= 5} // Wyłącz przycisk, jeśli zdrowie jest krytycznie niskie i akcja jest negatywna
+                >
+                  <div className="text-xl">{activity.icon}</div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium leading-tight text-gray-100">{activity.name}</div>
+                    <div className="text-xs opacity-80 mt-1 text-gray-300">
+                      {activity.healthChange > 0 ? '+' : ''}{activity.healthChange} HP
+                      {activity.duration > 0 && ` • ${activity.duration}m`}
+                    </div>
+                  </div>
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* Sekcja "Recharge Mode", jeśli zdrowie jest niskie */}
+          {healthBar.current <= 30 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mt-4 p-3 bg-red-950/50 border border-red-700 rounded-lg shadow-inner shadow-red-900/20"
+            >
+              <p className="text-sm text-red-200">
+                <strong>🔋 Recharge Mode:</strong> Your resilience is low. Consider taking a break or doing a restorative activity.
+              </p>
+              <div className="mt-2 text-xs text-red-300">
+                Recommended: {positiveActivities.slice(0, 3).map(a => a.name).join(', ')}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Wyświetlanie informacji o serii */}
+          {state.player.currentStreak > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="mt-3 p-3 bg-blue-950/50 border border-blue-700 rounded-lg shadow-inner shadow-blue-900/20"
+            >
+              <div className="text-sm text-blue-300 flex items-center justify-center gap-2">
+                <Flame size={18} className="text-orange-400 animate-pulse" />
+                {state.player.currentStreak} day streak! XP multiplier: {state.player.currentStreak >= 7 ? '3x' : state.player.currentStreak >= 3 ? '2x' : '1x'}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Wyświetlanie informacji o bonusie XP */}
+          {state.bonusXPActive && new Date() < state.bonusXPActive.expiresAt && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="mt-2 p-3 bg-yellow-950/30 border border-yellow-700 rounded-lg shadow-inner shadow-yellow-900/20"
+            >
+              <div className="text-sm text-yellow-300 flex items-center justify-center gap-2">
+                <Trophy size={18} className="text-yellow-400 animate-pulse" />
+                Bonus XP Active: {state.bonusXPActive.multiplier}x - {state.bonusXPActive.reason}
+              </div>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// src/pages/Index.tsx
+// Główna strona aplikacji, łącząca wszystkie komponenty.
+const Index = () => {
+  // actions są teraz dostępne, ponieważ Index jest renderowany w GameProvider
+  const { actions } = useGame(); 
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-zinc-950 to-black font-inter text-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10" // Zwiększono margines dolny dla lepszego odstępu
+        >
+          <h1 className="text-5xl font-extrabold text-white mb-3 tracking-wide drop-shadow-lg">
+            My Life: RPG Quest Log
+          </h1>
+          <p className="text-lg text-gray-300 font-light mb-6">
+            Transform your productivity into an epic adventure
+          </p>
+          {/* Przyciski umieszczone poniżej tytułu i podtytułu, wyśrodkowane i z odstępami */}
+          <div className="flex flex-wrap justify-center gap-4"> {/* Użycie flex-wrap i justify-center dla lepszej responsywności i odstępów */}
+            <AchievementsDialog />
+            <SkillTreeDialog />
+            {/* Przycisk AI Companion zawsze widoczny */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                    onClick={() => actions.openAIChat()} // Otwórz chatbota bez domyślnego promptu
+                    className="bg-cyan-600 hover:bg-cyan-700 shadow-lg shadow-cyan-900/50 text-white font-bold py-2 px-4 rounded-full flex items-center gap-2"
+                >
+                    <MessageSquare size={20} /> AI Companion
+                </Button>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Main Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lewa kolumna - Statystyki Gracza i Akcje Zdrowotne */}
+          <div className="space-y-8">
+            <PlayerStats />
+            <HealthActions />
+            <ActivityLog /> {/* Nowa karta historii aktywności */}
+          </div>
+
+          {/* Środkowa kolumna - Główne Zadanie i Sezon */}
+          <div>
+            <EditableMainQuest />
+          </div>
+
+          {/* Prawa kolumna - Lista Zadań */}
+          <div>
+            <QuestList />
+          </div>
+        </div>
+
+        {/* Stopka */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-center mt-16 text-gray-500"
+        >
+          <p className="text-sm">
+            Your journey to productivity mastery begins now. Every quest completed makes you stronger.
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// src/App.tsx
+// Główny komponent aplikacji, który renderuje Index.
+function App() {
+  return (
+    <GameProvider> {/* GameProvider owija teraz całą aplikację */}
+      <Index />
+      <Toaster richColors position="bottom-right" />
+    </GameProvider>
+  );
+}
+
+// Exportujemy App jako domyślny komponent
+// To jest jedyny domyślny eksport w całym pliku, aby uniknąć błędów
+export default App;
