@@ -27,29 +27,18 @@ const AICompanion = () => {
   useEffect(() => {
     const checkServerStatus = async () => {
       try {
-        // Spróbujmy najpierw na localhost
+        // Spróbujmy najpierw na adresie lokalnym sieci
         try {
-          await axios.get('http://localhost:3001/status');
+          await axios.get('http://192.168.1.5:3001/status');
           setServerStatus('connected');
-          
           // Usuń błąd związany z brakiem połączenia, jeśli był wyświetlany
           const errorDiv = document.querySelector('.error-message');
           if (errorDiv && errorDiv.textContent?.includes('server')) {
             errorDiv.textContent = '';
           }
-          
           return; // Jeśli połączenie się udało, zakończ funkcję
         } catch (localErr) {
-          console.warn("Could not connect to localhost:3001, trying 127.0.0.1:3001");
-          // Spróbuj użyć jawnego adresu IP
-          await axios.get('http://127.0.0.1:3001/status');
-          setServerStatus('connected');
-          
-          // Usuń błąd związany z brakiem połączenia, jeśli był wyświetlany
-          const errorDiv = document.querySelector('.error-message');
-          if (errorDiv && errorDiv.textContent?.includes('server')) {
-            errorDiv.textContent = '';
-          }
+          console.warn("Could not connect to 192.168.1.5:3001");
         }
       } catch (err) {
         console.error("Error connecting to server:", err);
@@ -255,25 +244,29 @@ const AICompanion = () => {
       
       let response;
       try {
-        // Spróbuj z localhost
-        response = await axios.post('http://localhost:3001/chat', {
+        // Spróbuj z adresem lokalnym sieci
+        response = await axios.post('http://192.168.1.5:3001/chat', {
           message: input,
           gameState: gameStateSummary
         });
-        console.log("Successfully sent request to localhost:3001");
+        console.log("Successfully sent request to 192.168.1.5:3001");
       } catch (localErr) {
-        console.warn("Failed to connect to localhost:3001, trying 127.0.0.1:3001", localErr);
-        // Jeśli nie zadziała, spróbuj z jawnym adresem IP
-        response = await axios.post('http://127.0.0.1:3001/chat', {
-          message: input,
-          gameState: gameStateSummary
-        });
-        console.log("Successfully sent request to 127.0.0.1:3001");
+        console.warn("Failed to connect to 192.168.1.5:3001", localErr);
       }
-      
+
+      if (!response || !response.data) {
+        setCompanionResponse("⚠️ I couldn't get a response from the AI server. Please make sure the server is running at http://192.168.1.5:3001 and try again.");
+        setIsLoading(false);
+        setInput('');
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+        return;
+      }
+
       const responseData = response.data;
       console.log("Response from server:", responseData);
-      
+
       // Dokładniejsze logowanie dla celów debugowania
       console.log("Backend response data (raw):", JSON.stringify(response.data));
       console.log("Response data content type:", typeof responseData);
@@ -282,36 +275,33 @@ const AICompanion = () => {
           name: responseData.functionCall.name,
           argsType: typeof responseData.functionCall.arguments,
           args: responseData.functionCall.arguments,
-          xpRewardType: responseData.functionCall.arguments.xpReward ? 
+          xpRewardType: responseData.functionCall.arguments.xpReward ?
             typeof responseData.functionCall.arguments.xpReward : 'undefined',
-          healthChangeType: responseData.functionCall.arguments.healthChange ? 
+          healthChangeType: responseData.functionCall.arguments.healthChange ?
             typeof responseData.functionCall.arguments.healthChange : 'undefined',
         });
       }
-      
+
       // Czyszczenie wszelkich komunikatów o błędach
       const errorElement = document.querySelector('.error-message');
       if (errorElement) {
         errorElement.innerHTML = '';
         errorElement.classList.remove('visible');
       }
-      
+
       // Upewniamy się, że stara odpowiedź nie będzie widoczna podczas przetwarzania
       if (companionResponse) {
         setCompanionResponse(null);
       }
-      
+
       // Handle function call response
       if (responseData.functionCall) {
         const functionCall = responseData.functionCall;
         const functionName = functionCall.name;
         const functionArgs = functionCall.arguments;
-        
         // Dodatkowy log dla lepszego debugowania
         console.log("Gemini suggested function call:", functionName, "with args:", functionArgs);
-        
         console.log(`Executing function: ${functionName}`, functionArgs);
-        
         // Execute function based on name returned from backend
         switch (functionName) {
           case 'add_quest':
@@ -713,7 +703,7 @@ W jaki sposób mogę Ci dziś pomóc?`);
       // Bardziej szczegółowa informacja o błędzie
       if (axios.isAxiosError(err)) {
         if (err.code === 'ECONNREFUSED' || !err.response) {
-          setCompanionResponse("⚠️ I couldn't connect to the AI server. Please make sure the server is running at http://localhost:3001 and try again.");
+          setCompanionResponse("⚠️ I couldn't connect to the AI server. Please make sure the server is running at http://192.168.1.5:3001 and try again.");
         } else if (err.response && err.response.status === 429) {
           setCompanionResponse("⚠️ The API rate limit has been exceeded. Please wait a moment and try again.");
         } else {
