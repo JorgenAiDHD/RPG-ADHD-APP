@@ -304,11 +304,16 @@ app.post('/chat', async (req, res) => {
 
       // Check if Gemini wants to call a function - improved handling
       console.log('Checking response for function calls...');
-      console.log('response.functionCall:', response.functionCall);
+      console.log('response.functionCall type:', typeof response.functionCall);
       console.log('response.candidates:', response.candidates);
       
-      if (response.functionCall) {
-        const { name, args } = response.functionCall;
+      // Check if response contains function calls in candidates
+      const functionCalls = response.candidates?.[0]?.content?.parts?.filter(part => part.functionCall);
+      console.log('Found function calls:', functionCalls);
+      
+      if (functionCalls && functionCalls.length > 0) {
+        const functionCall = functionCalls[0].functionCall;
+        const { name, args } = functionCall;
         console.log(`Gemini requested function call: ${name} with args:`, args);
 
         // Execute the function on the server side
@@ -322,25 +327,12 @@ app.post('/chat', async (req, res) => {
           },
           text: "" // No text response when a function is called
         });
-      } else if (response.candidates && response.candidates[0] && response.candidates[0].content.parts) {
-        // Check if any part contains function calls
-        const parts = response.candidates[0].content.parts;
-        console.log('Checking parts for function calls:', parts);
-        
-        if (response.text()) {
-          // If Gemini provides a text response, send it
-          return res.json({
-            text: response.text(),
-            functionCall: null
-          });
-        } else {
-          // Fallback for unexpected responses
-          console.warn("Unexpected response format from Gemini:", response);
-          return res.json({
-            text: "Przepraszam, nie zrozumiałem. Czy możesz powtórzyć?",
-            functionCall: null
-          });
-        }
+      } else if (response.text()) {
+        // If Gemini provides a text response, send it
+        return res.json({
+          text: response.text(),
+          functionCall: null
+        });
       } else {
         // Fallback for unexpected responses
         console.warn("Unexpected response format from Gemini:", response);
