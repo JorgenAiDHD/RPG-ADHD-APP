@@ -164,14 +164,14 @@ app.post('/chat', async (req, res) => {
     // Debugging: Log raw response from Gemini
     logApiCall("Raw Gemini Response", response);
 
-    // Check for function call
-    if (response.functionCall) {
+    // Always return a consistent response structure
+    if (response.functionCall !== undefined && response.functionCall !== null) {
       logApiCall("Function Call Detected", response.functionCall);
       return res.json({
         text: "",
         functionCall: response.functionCall,
       });
-    } else if (response.text()) {
+    } else if (typeof response.text === 'function' && response.text()) {
       logApiCall("Text Response Detected", response.text());
       return res.json({
         text: response.text(),

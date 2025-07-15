@@ -1,0 +1,6 @@
+services:
+  myrpgquestlog:
+    image: myrpgquestlog
+    build:
+      context: .
+      dockerfile: ./Dockerfile
