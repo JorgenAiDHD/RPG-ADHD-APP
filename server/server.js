@@ -11,21 +11,10 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
-// Restrict CORS to your GitHub Pages domain for production and allow localhost for local dev
-const allowedOrigins = [
-  'https://jorgenaidhd.github.io',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173'
-];
-
+// Allow all origins for testing - this should be restricted in production
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
+  origin: '*',
+  credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
