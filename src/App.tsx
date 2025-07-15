@@ -1,4 +1,4 @@
-// Główny plik aplikacji React, zawierający wszystkie komponenty i logikę.
+// Główny plik aplikacji React, zawierający wszystkie komponenty i logikę. 
 import { ThemeProvider } from './context/ThemeContext';
 import { GameProvider } from './context/GameContext';
 import { Toaster } from 'sonner';
