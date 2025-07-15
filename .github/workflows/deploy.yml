@@ -25,6 +25,7 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          VITE_AI_SERVER_URL: ${{ secrets.AI_SERVER_PUBLIC_URL }}
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4

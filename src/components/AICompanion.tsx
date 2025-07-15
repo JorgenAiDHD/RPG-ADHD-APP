@@ -15,9 +15,8 @@ import axios from 'axios';
  * Uses the aiCompanion utility for natural language processing of commands.
  */
 const AICompanion = () => {
-
-  // Ustawiamy na stałe publiczny adres ngrok, aby działało wszędzie
-  const serverUrl = "https://39a231890547.ngrok-free.app";
+  // Dynamiczny URL backendu: z .env (workflow/sekret) lub fallback na localhost
+  const serverUrl = import.meta.env.VITE_AI_SERVER_URL || "http://localhost:3001";
   console.log(`AI Companion connecting to: ${serverUrl}`);
   const { state, actions } = useGame();
   const [input, setInput] = useState('');
