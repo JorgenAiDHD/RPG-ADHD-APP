@@ -18,6 +18,8 @@ const AICompanion = () => {
   // Dynamiczny URL backendu: z .env (workflow/sekret) lub fallback na localhost
   const serverUrl = import.meta.env.VITE_AI_SERVER_URL || "http://localhost:3001";
   console.log(`AI Companion connecting to: ${serverUrl}`);
+  console.log('Available env vars:', import.meta.env);
+  console.log('VITE_AI_SERVER_URL:', import.meta.env.VITE_AI_SERVER_URL);
   const { state, actions } = useGame();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
