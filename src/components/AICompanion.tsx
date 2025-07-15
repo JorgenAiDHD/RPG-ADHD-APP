@@ -15,10 +15,17 @@ import axios from 'axios';
  * Uses the aiCompanion utility for natural language processing of commands.
  */
 const AICompanion = () => {
-  // Use local network address for server connections
-  const serverHost = window.location.hostname;
-  // Use protocol-relative URL to avoid Mixed Content (works for both http and https)
-  const serverUrl = `${window.location.protocol}//${serverHost}:3001`;
+  const AI_SERVER_PORT = 3001; // Port, na którym nasłuchuje Twój serwer AI
+
+  // Determine the AI server URL based on the environment
+  // In a deployed environment (e.g., GitHub Pages), REACT_APP_AI_SERVER_URL will be set to your PC's local IP.
+  // In a local development environment, it will default to localhost.
+  const serverUrl = process.env.REACT_APP_AI_SERVER_URL
+      ? `http://${process.env.REACT_APP_AI_SERVER_URL}:${AI_SERVER_PORT}`
+      : `http://localhost:${AI_SERVER_PORT}`;
+
+  // Debug log to confirm which URL is being used
+  console.log(`AI Companion connecting to: ${serverUrl}`);
   const { state, actions } = useGame();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
