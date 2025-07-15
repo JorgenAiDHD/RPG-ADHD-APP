@@ -8,8 +8,6 @@ import ActivityLog from '../components/ActivityLog';
 import EditableMainQuest from '../components/EditableMainQuest';
 import QuestList from '../components/QuestList';
 import { PlayerStats } from '../components/PlayerStats';
-import AIChatbotDialog from '../components/AIChatbotDialog';
-import AICompanion from '../components/AICompanion';
 import NewQuestDialog from '../components/NewQuestDialog';
 import FocusTimer from '../components/FocusTimer';
 
@@ -36,9 +34,6 @@ const Index = () => {
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <SkillTreeDialog />
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <AIChatbotDialog />
             </motion.div>
           </div>
         </motion.div>
