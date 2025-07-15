@@ -172,12 +172,13 @@ app.post('/chat', async (req, res) => {
         systemPrompt += "\n\nFor health activities, you can use log_health_activity tool with both positive and negative health and XP changes.";
         
         // Teraz możemy używać systemu funkcji zamiast symulacji
+        // Gemini API expects systemInstruction as an object with role and parts
         const chat = model.startChat({
           generationConfig: {
             temperature: 0.7,
           },
           tools: [{ functionDeclarations: functionSchemas }],
-          systemInstruction: systemPrompt
+          systemInstruction: { role: 'system', parts: [systemPrompt] }
         });
 
         console.log("Sending to Gemini with context:", { message, systemPrompt });
@@ -274,7 +275,7 @@ app.post('/chat', async (req, res) => {
                 temperature: 0.7,
               },
               tools: [{ functionDeclarations: functionSchemas }],
-              systemInstruction: simplePrompt
+              systemInstruction: { role: 'system', parts: [simplePrompt] }
             });
             
             console.log("Retrying with simplified prompt");
@@ -403,6 +404,7 @@ app.get('/status', (req, res) => {
 });
 
 // Start the server
+// Listen on all network interfaces for LAN/mobile access
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port} (all interfaces)`);
 });
