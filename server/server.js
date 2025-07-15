@@ -151,7 +151,7 @@ app.post('/chat', async (req, res) => {
       generationConfig: {
         temperature: 0.7,
       },
-      systemInstruction: [{ text: customParts(gameState).map(p => p.text).join("\n\n") }],
+      systemInstruction: { text: customParts(gameState).map(p => p.text).join("\n\n") },
     });
 
     const result = await chat.sendMessage(message);
