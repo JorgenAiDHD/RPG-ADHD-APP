@@ -165,7 +165,7 @@ app.post('/chat', async (req, res) => {
     logApiCall("Raw Gemini Response", response);
 
     // Always return a consistent response structure
-    if (response.functionCall !== undefined && response.functionCall !== null) {
+    if (response.functionCall && typeof response.functionCall === 'object') {
       logApiCall("Function Call Detected", response.functionCall);
       return res.json({
         text: "",
