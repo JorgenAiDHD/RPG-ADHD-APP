@@ -155,7 +155,7 @@ app.post('/chat', async (req, res) => {
       generationConfig: {
         temperature: 0.7,
       },
-      systemInstruction: { text: getSystemInstruction(gameState) },
+      systemInstruction: getSystemInstruction(gameState),
     });
 
     const result = await chat.sendMessage(message);
