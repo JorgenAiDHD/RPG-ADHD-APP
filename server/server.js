@@ -32,7 +32,7 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Function schemas for Gemini function calling
+// Function schemas for Gemini function calling (expanded)
 const functionSchemas = [
   {
     name: "set_main_quest",
@@ -40,360 +40,143 @@ const functionSchemas = [
     parameters: {
       type: "object",
       properties: {
-        title: {
-          type: "string",
-          description: "The title of the main quest"
-        },
-        description: {
-          type: "string",
-          description: "A detailed description of the main quest"
-        }
+        title: { type: "string", description: "New title for the main quest" },
+        description: { type: "string", description: "New description for the main quest" },
       },
-      required: ["title", "description"]
-    }
+      required: ["title", "description"],
+    },
   },
   {
     name: "add_quest",
-    description: "Adds a new quest with the provided details",
+    description: "Adds a new quest for the player",
     parameters: {
       type: "object",
       properties: {
-        title: {
-          type: "string",
-          description: "The title of the quest"
-        },
-        xpReward: {
-          type: "number",
-          description: "The amount of XP rewarded for completing the quest"
-        }
+        title: { type: "string", description: "Title of the quest" },
+        description: { type: "string", description: "Detailed description of the quest" },
+        xpReward: { type: "number", description: "Experience points awarded upon completion" },
+        estimatedTime: { type: "number", description: "Estimated time in minutes to complete the quest" },
+        category: { type: "string", description: "Category of the quest (e.g., 'main', 'side', 'daily', 'skill')" },
+        difficulty: { type: "string", description: "Difficulty of the quest (e.g., 'easy', 'medium', 'hard', 'epic')" },
+        anxietyLevel: { type: "string", description: "Perceived anxiety level for the quest (e.g., 'low', 'medium', 'high', 'comfortable')" },
+        tags: { type: "array", items: { type: "string" }, description: "Relevant tags for the quest" },
       },
-      required: ["title"]
-    }
+      required: ["title", "description", "xpReward", "estimatedTime", "category", "difficulty"],
+    },
+  },
+  {
+    name: "complete_quest",
+    description: "Marks a quest as complete, identifying it by its title",
+    parameters: {
+      type: "object",
+      properties: {
+        questTitle: { type: "string", description: "The exact title of the quest to be completed" },
+      },
+      required: ["questTitle"],
+    },
   },
   {
     name: "log_health_activity",
-    description: "Logs a health-related activity with positive or negative effects on health and XP",
+    description: "Logs a health-related activity and applies changes to player health and XP",
     parameters: {
       type: "object",
       properties: {
-        activityName: {
-          type: "string",
-          description: "The name of the health activity being logged"
-        },
-        healthChange: {
-          type: "number",
-          description: "Change in health points from the activity (positive for gain, negative for loss)",
-          default: 0
-        },
-        xpChange: {
-          type: "number",
-          description: "Change in XP from the activity (positive for gain, negative for loss)",
-          default: 0
-        },
-        category: {
-          type: "string",
-          description: "The category of the health activity (physical, mental, social, creative)",
-          enum: ["physical", "mental", "social", "creative"]
-        },
-        duration: {
-          type: "number",
-          description: "The duration of the activity in minutes",
-          default: 30
-        },
-        description: {
-          type: "string",
-          description: "A brief description of the health activity"
-        },
-        icon: {
-          type: "string",
-          description: "An emoji icon representing the activity",
-          default: "💪"
-        }
+        activityName: { type: "string", description: "Name of the health activity (e.g., 'meditation', 'workout')" },
+        healthChange: { type: "number", description: "Change in health points (positive for healing, negative for damage)" },
+        xpChange: { type: "number", description: "Change in XP points (positive for gain, negative for loss)" },
+        category: { type: "string", description: "Category of the activity (e.g., 'physical', 'mental', 'social')" },
+        duration: { type: "number", description: "Duration of the activity in minutes" },
+        description: { type: "string", description: "Brief description of the activity" },
+        icon: { type: "string", description: "Emoji icon representing the activity" },
       },
-      required: ["activityName"]
-    }
-  }
+      required: ["activityName", "healthChange", "xpChange", "category", "duration"],
+    },
+  },
+  {
+    name: "get_player_status",
+    description: "Retrieves the current status of the player, including level, XP, health, streak, active quests, and main quest.",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+];
+
+// Custom system instruction parts for Gemini
+const customParts = (gameState) => [
+  { text: "You are an AI game companion for an RPG-themed productivity app designed to help users with ADHD. Your primary goal is to help the user manage their quests and activities, provide motivational support, and offer status updates. Always respond in character as a helpful and encouraging companion." },
+  { text: `Current Game State: ${JSON.stringify(gameState, null, 2)}` },
+  { text: "Your available tools are defined by the function schemas. Use these tools to update the game state based on user requests. If a user asks to add, complete, or modify a quest or log a health activity, use the appropriate function call. If a user asks for their status, use the 'get_player_status' function." },
+  { text: "When asked to create new quests, if the user doesn't specify all parameters for `add_quest` (like xpReward, estimatedTime, category, difficulty, anxietyLevel), ask clarifying questions to get the necessary details. For `xpReward` and `estimatedTime`, suggest reasonable numerical defaults if the user is unsure. For `category`, suggest 'side', 'daily', or 'skill'. For `difficulty`, suggest 'easy', 'medium', or 'hard'. For `anxietyLevel`, suggest 'comfortable', 'low', 'medium', or 'high'. If the user asks for multiple quests, call `add_quest` for each one." },
+  { text: "When asked to log health activities, if the user doesn't specify all parameters for `log_health_activity` (like healthChange, xpChange, category, duration), ask clarifying questions. For `healthChange` and `xpChange`, suggest reasonable numerical defaults based on the activity. For `category`, suggest 'physical', 'mental', or 'social'. For `duration`, suggest a reasonable number." },
+  { text: "If the user asks to complete a quest, use the `complete_quest` function. If the exact quest title is unclear, ask for clarification or provide a list of active quests for them to choose from." },
+  { text: "If the user asks for general help or information not covered by direct function calls, provide a helpful text response based on the game context." },
+  { text: "When a function is called, your response should be a function call, not a text response describing what you've done." },
+  { text: "Example: User: 'Add a new quest to read a book.' AI: functionCall: {name: 'add_quest', arguments: {title: 'Read a book', description: 'Read a fantasy novel for 30 minutes', xpReward: 50, estimatedTime: 30, category: 'skill', difficulty: 'easy', anxietyLevel: 'comfortable', tags: ['reading', 'learning']}}" },
+  { text: "Example: User: 'I meditated for 15 minutes.' AI: functionCall: {name: 'log_health_activity', arguments: {activityName: 'Meditation', healthChange: 5, xpChange: 5, category: 'mental', duration: 15, description: 'Mindfulness session', icon: '🧘'}}" },
+  { text: "Example: User: 'What's my status?' AI: functionCall: {name: 'get_player_status', arguments: {}}" },
 ];
 
 // Chat endpoint to process messages via Gemini API
 app.post('/chat', async (req, res) => {
+  const { message, gameState } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  // Debugging: Log incoming message and game state
+  logApiCall("Incoming Chat Request", { message, gameState });
+
   try {
-    console.log("Received request:", req.body);
-    const { message, gameState } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      tools: functionSchemas,
+    });
+
+    const chat = model.startChat({
+      history: [],
+      generationConfig: {
+        temperature: 0.7,
+      },
+      systemInstruction: customParts(gameState),
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = result.response;
+
+    // Debugging: Log raw response from Gemini
+    logApiCall("Raw Gemini Response", response);
+
+    // Check for function call
+    if (response.functionCall) {
+      logApiCall("Function Call Detected", response.functionCall);
+      return res.json({
+        text: "",
+        functionCall: response.functionCall,
+      });
+    } else if (response.text()) {
+      logApiCall("Text Response Detected", response.text());
+      return res.json({
+        text: response.text(),
+        functionCall: null,
+      });
+    } else {
+      // No function call or text
+      console.warn("Gemini returned no function call and no text response.");
+      return res.json({
+        text: "I couldn't process your request. Could you please rephrase it or try something else?",
+        functionCall: null,
+      });
     }
 
-    // Jeśli gameState jest dostępny, wykorzystajmy go w prompcie systemowym
-    if (gameState) {
-      console.log("Game state received, processing with context");
-      try {
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-1.5-flash',
-        });
-        
-        // Przygotuj skrócony systemowy prompt z najważniejszymi informacjami
-        let systemPrompt = "You are an AI Companion for the RPG Quest Log app. ";
-        systemPrompt += "Help users manage tasks, health, and progress. ";
-        systemPrompt += "Be enthusiastic, supportive, and use RPG terminology. ";
-        systemPrompt += "Use the available tools to modify game state when appropriate. ";
-        
-        // Dodaj tylko kluczowe informacje o stanie gry
-        systemPrompt += "\n\nGAME STATUS:";
-        systemPrompt += `\nPlayer Level: ${gameState.player.level}, XP: ${gameState.player.xp}/${gameState.player.xpToNextLevel}`;
-        systemPrompt += `\nHealth: ${gameState.healthBar.current}/${gameState.healthBar.maximum}`;
-        
-        // Dodaj informację o głównym zadaniu, jeśli istnieje
-        if (gameState.mainQuest && gameState.mainQuest.title) {
-          systemPrompt += `\nMain Quest: "${gameState.mainQuest.title}"`;
-        }
-        
-        // Informacja o aktywnych questach - tylko liczba
-        if (gameState.activeQuests && gameState.activeQuests.length > 0) {
-          systemPrompt += `\nActive Quests: ${gameState.activeQuests.length}`;
-        } else {
-          systemPrompt += "\nNo active quests.";
-        }
-        
-        // Funkcja do bezpiecznego serializowania obiektów
-        const safeStringify = (obj) => {
-          if (!obj) return '';
-          if (Array.isArray(obj)) {
-            return `${obj.length} items`;
-          }
-          return 'available';
-        };
-        
-        // Bezpieczne dodawanie dodatkowych informacji
-        systemPrompt += `\nHealth Activities: ${safeStringify(gameState.customHealthActivities || [])}`;
-        
-        // Dodajemy instrukcję jak używać narzędzi
-        systemPrompt += "\n\nFor health activities, you can use log_health_activity tool with both positive and negative health and XP changes.";
-        
-        // Teraz możemy używać systemu funkcji zamiast symulacji
-        // Gemini API expects systemInstruction as an object with role and parts
-        const chat = model.startChat({
-          generationConfig: {
-            temperature: 0.7,
-          },
-          tools: [{ functionDeclarations: functionSchemas }],
-          systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] }
-        });
-
-        console.log("Sending to Gemini with context:", { message, systemPrompt });
-        const result = await chat.sendMessage(message);
-        const response = await result.response;
-        const text = response.text();
-        console.log("Response from Gemini:", text);
-        
-        // Check for function calls
-        let functionCall = null;
-        if (response.candidates && response.candidates[0]?.content?.parts?.length > 0) {
-          const parts = response.candidates[0].content.parts;
-          for (const part of parts) {
-            if (part.functionCall) {
-              try {
-                // Parse function arguments from JSON string
-                const rawArgs = JSON.parse(part.functionCall.args);
-                console.log("Raw function args:", rawArgs);
-                
-                // Convert numeric values to actual numbers when needed
-                const processedArgs = {};
-                
-                // Handle each function differently based on its expected parameters
-                if (part.functionCall.name === 'add_quest') {
-                  processedArgs.title = rawArgs.title;
-                  processedArgs.description = rawArgs.description || '';
-                  processedArgs.type = rawArgs.type || 'side';
-                  processedArgs.xpReward = rawArgs.xpReward ? Number(rawArgs.xpReward) : 20;
-                  processedArgs.priority = rawArgs.priority || 'medium';
-                  processedArgs.estimatedTime = rawArgs.estimatedTime ? Number(rawArgs.estimatedTime) : 30;
-                  processedArgs.difficultyLevel = rawArgs.difficultyLevel ? Number(rawArgs.difficultyLevel) : 3;
-                  processedArgs.energyRequired = rawArgs.energyRequired || 'medium';
-                  processedArgs.anxietyLevel = rawArgs.anxietyLevel || 'comfortable';
-                  processedArgs.tags = rawArgs.tags || ['general'];
-                } 
-                else if (part.functionCall.name === 'log_health_activity') {
-                  processedArgs.activityName = rawArgs.activityName;
-                  processedArgs.healthChange = rawArgs.healthChange ? Number(rawArgs.healthChange) : 0;
-                  processedArgs.xpChange = rawArgs.xpChange ? Number(rawArgs.xpChange) : 0;
-                  processedArgs.category = rawArgs.category || 'physical';
-                  processedArgs.duration = rawArgs.duration ? Number(rawArgs.duration) : 30;
-                  processedArgs.description = rawArgs.description || '';
-                  processedArgs.icon = rawArgs.icon || '💪';
-                }
-                else {
-                  // For other functions, use raw args but make a safe copy
-                  Object.keys(rawArgs).forEach(key => {
-                    processedArgs[key] = rawArgs[key];
-                  });
-                }
-                
-                console.log("Processed function args:", processedArgs);
-                
-                functionCall = {
-                  name: part.functionCall.name,
-                  arguments: processedArgs
-                };
-              } catch (argError) {
-                console.error("Error processing function arguments:", argError);
-                console.error("Original args:", part.functionCall.args);
-                // Fallback to original behavior
-                functionCall = {
-                  name: part.functionCall.name,
-                  arguments: JSON.parse(part.functionCall.args)
-                };
-              }
-              break;
-            }
-          }
-        }
-        
-        return res.json({
-          text: text,
-          functionCall: functionCall
-        });
-        
-      } catch (apiError) {
-        console.error("Error with Gemini API:", apiError);
-        
-        // Obsługa błędów specyficznych dla formatu instrukcji
-        if (apiError.message && apiError.message.includes('Invalid value at \'system_instruction\'')) {
-          console.log("Detected system instruction format error, falling back to simplified prompt");
-          
-          // Próba z bardziej uproszczonym promptem
-          try {
-            const simpleModel = genAI.getGenerativeModel({
-              model: 'gemini-1.5-flash',
-            });
-            
-            const simplePrompt = "You are an RPG Quest Log assistant. Help with quests and health activities.";
-            
-            const simpleChat = simpleModel.startChat({
-              generationConfig: {
-                temperature: 0.7,
-              },
-              tools: [{ functionDeclarations: functionSchemas }],
-              systemInstruction: { role: 'system', parts: [{ text: simplePrompt }] }
-            });
-            
-            console.log("Retrying with simplified prompt");
-            const simpleResult = await simpleChat.sendMessage(message);
-            const simpleResponse = await simpleResult.response;
-            const simpleText = simpleResponse.text();
-            
-            // Próba przetworzenia odpowiedzi z funkcjami jak wcześniej
-            let functionCall = null;
-            if (simpleResponse.candidates && simpleResponse.candidates[0]?.content?.parts?.length > 0) {
-              // Pozostała logika obsługi funkcji (taka sama jak w głównym bloku kodu)
-              const parts = simpleResponse.candidates[0].content.parts;
-              for (const part of parts) {
-                if (part.functionCall) {
-                  try {
-                    const rawArgs = JSON.parse(part.functionCall.args);
-                    const processedArgs = {};
-                    
-                    // Podobna obróbka argumentów jak wcześniej
-                    if (part.functionCall.name === 'log_health_activity') {
-                      processedArgs.activityName = rawArgs.activityName;
-                      processedArgs.healthChange = rawArgs.healthChange ? Number(rawArgs.healthChange) : 0;
-                      processedArgs.xpChange = rawArgs.xpChange ? Number(rawArgs.xpChange) : 0;
-                      processedArgs.category = rawArgs.category || 'physical';
-                      processedArgs.duration = rawArgs.duration ? Number(rawArgs.duration) : 30;
-                      processedArgs.description = rawArgs.description || '';
-                      processedArgs.icon = rawArgs.icon || '💪';
-                    } else {
-                      Object.keys(rawArgs).forEach(key => {
-                        processedArgs[key] = rawArgs[key];
-                      });
-                    }
-                    
-                    functionCall = {
-                      name: part.functionCall.name,
-                      arguments: processedArgs
-                    };
-                    break;
-                  } catch (innerError) {
-                    console.error("Error in fallback function processing:", innerError);
-                  }
-                }
-              }
-            }
-            
-            return res.json({
-              text: simpleText,
-              functionCall: functionCall
-            });
-            
-          } catch (fallbackError) {
-            console.error("Even fallback approach failed:", fallbackError);
-            // Kontynuuj do ogólnej obsługi błędów poniżej
-          }
-        }
-        
-        return res.status(500).json({ 
-          error: 'Failed to process chat with AI',
-          message: apiError.message 
-        });
-      }
-    }
-    
-    // Fallback do testowej implementacji, jeśli nie mamy gameState lub wystąpił problem
-    console.log("Falling back to test implementation");
-    
-    // Dla testów, symulujmy wywołanie funkcji add_quest z wartościami liczbowymi
-    if (message.toLowerCase().includes("add quest") || message.toLowerCase().includes("dodaj zadanie")) {
-      return res.json({ 
-        text: "",
-        functionCall: {
-          name: "add_quest",
-          arguments: {
-            title: "Test Quest",
-            description: "This is a test quest",
-            type: "side",
-            xpReward: 50, // Liczba, nie string
-            priority: "medium",
-            estimatedTime: 30, // Liczba, nie string
-            difficultyLevel: 3, // Liczba, nie string
-            energyRequired: "medium",
-            anxietyLevel: "comfortable",
-            tags: ["test", "debug"]
-          }
-        }
-      });
-    } 
-    // Symulacja log_health_activity
-    else if (message.toLowerCase().includes("health") || message.toLowerCase().includes("zdrowie")) {
-      return res.json({ 
-        text: "",
-        functionCall: {
-          name: "log_health_activity",
-          arguments: {
-            activityName: "Test Activity",
-            healthChange: 15, // Liczba, nie string
-            xpChange: 10,     // Dodano XP change
-            category: "physical",
-            duration: 45, // Liczba, nie string
-            description: "Test health activity",
-            icon: "🏃‍♂️"
-          }
-        }
-      });
-    }
-    // Domyślna odpowiedź dla innych wiadomości
-    else {
-      return res.json({ 
-        text: "I'm your AI companion in test mode. Try asking me to 'add quest' or log a 'health' activity.",
-        functionCall: null
-      });
-    }
-    
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to process chat request',
-      message: error.message 
+    console.error('Error processing chat request:', error);
+    return res.status(500).json({
+      error: 'Failed to process chat request from Gemini API',
+      message: error.message,
+      details: error.stack,
     });
   }
 });
