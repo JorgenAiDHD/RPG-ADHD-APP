@@ -12,7 +12,9 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
-// Allow all origins for testing - this should be restricted in production
+// CORS Configuration - DEVELOPMENT ONLY
+// WARNING: origin: '*' allows all domains - restrict to specific domains in production
+// Production should use: origin: ['https://jorgenaidhd.github.io', 'https://localhost:3000']
 app.use(cors({
   origin: '*',
   credentials: false,
@@ -28,16 +30,26 @@ function logApiCall(label, data) {
   console.log("====================\n");
 }
 
-// Initialize Gemini AI
+// Initialize Gemini AI with proper error handling
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
   console.error('GEMINI_API_KEY is not set in the environment variables.');
+  console.error('Please create a .env file with GEMINI_API_KEY=your_api_key_here');
+  process.exit(1);
+}
+
+// Validate UUID library is available
+try {
+  const testUuid = uuidv4();
+  console.log('UUID library loaded successfully');
+} catch (error) {
+  console.error('Error loading UUID library:', error);
   process.exit(1);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Function schemas for Gemini function calling
+// Function schemas for Gemini function calling - CORRECTED STRUCTURE
 const functionSchemas = [
   {
     name: "set_main_quest",
@@ -106,8 +118,7 @@ const functionSchemas = [
     parameters: {
       type: "object",
       properties: {}
-    },
-    required: []
+    }
   }
 ];
 
@@ -143,56 +154,87 @@ let currentGameState = {
   customHealthActivities: 0
 };
 
-// Helper to update game state based on function calls
+// Helper to update game state based on function calls with improved error handling
 const updateGameState = (functionName, args) => {
-  switch (functionName) {
-    case 'set_main_quest':
-      currentGameState.mainQuest = {
-        title: args.title,
-        description: args.description,
-        isActive: true
-      };
-      console.log(`Main quest set: ${args.title}`);
-      break;
-    case 'add_quest':
-      const newQuest = {
-        id: uuidv4(), // Używa zainstalowanej biblioteki uuid do generowania unikalnego ID
-        title: args.title,
-        description: args.description,
-        type: args.type,
-        xpReward: args.xpReward,
-        priority: args.priority,
-        estimatedTime: args.estimatedTime,
-        difficultyLevel: args.difficultyLevel,
-        energyRequired: args.energyRequired,
-        anxietyLevel: args.anxietyLevel,
-        tags: args.tags || [],
-        status: "active" // Added status for quests
-      };
-      currentGameState.activeQuests.push(newQuest);
-      console.log(`Quest added: ${newQuest.title}`);
-      break;
-    case 'complete_quest':
-      const questIndex = currentGameState.activeQuests.findIndex(q => q.id === args.questId);
-      if (questIndex > -1) {
-        const completedQuest = currentGameState.activeQuests.splice(questIndex, 1)[0];
-        currentGameState.completedQuests++;
-        currentGameState.player.xp += args.xpGained;
-        currentGameState.player.level = Math.floor(currentGameState.player.xp / currentGameState.player.xpToNextLevel) + 1; // Basic leveling
-        console.log(`Quest completed: ${completedQuest.title}. XP gained: ${args.xpGained}`);
-      }
-      break;
-    case 'log_health_activity':
-      currentGameState.healthBar.current = Math.min(currentGameState.healthBar.maximum, currentGameState.healthBar.current + args.healthChange);
-      currentGameState.player.xp += args.xpChange;
-      currentGameState.player.level = Math.floor(currentGameState.player.xp / currentGameState.player.xpToNextLevel) + 1; // Basic leveling
-      console.log(`Health activity logged: ${args.activityName}. Health change: ${args.healthChange}, XP change: ${args.xpChange}`);
-      break;
-    case 'get_player_status':
-      // This function primarily retrieves, no state update needed here
-      break;
-    default:
-      console.warn(`Unknown function call: ${functionName}`);
+  try {
+    switch (functionName) {
+      case 'set_main_quest':
+        if (!args.title || !args.description) {
+          throw new Error('Missing required parameters for set_main_quest');
+        }
+        currentGameState.mainQuest = {
+          title: args.title,
+          description: args.description,
+          isActive: true
+        };
+        console.log(`Main quest set: ${args.title}`);
+        break;
+        
+      case 'add_quest':
+        if (!args.title || !args.description || !args.xpReward || !args.estimatedTime) {
+          throw new Error('Missing required parameters for add_quest');
+        }
+        const newQuest = {
+          id: uuidv4(), // Using uuid library for reliable unique ID generation
+          title: args.title,
+          description: args.description,
+          type: args.type || 'daily', // Default to daily if not specified
+          xpReward: args.xpReward,
+          priority: args.priority || 'medium', // Default priority
+          estimatedTime: args.estimatedTime,
+          difficultyLevel: args.difficultyLevel || 2, // Default difficulty
+          energyRequired: args.energyRequired || 'medium', // Default energy
+          anxietyLevel: args.anxietyLevel || 'comfortable', // Default anxiety level
+          tags: args.tags || [],
+          status: "active"
+        };
+        currentGameState.activeQuests.push(newQuest);
+        console.log(`Quest added: ${newQuest.title} (ID: ${newQuest.id})`);
+        break;
+        
+      case 'complete_quest':
+        if (!args.questId) {
+          throw new Error('Missing questId for complete_quest');
+        }
+        const questIndex = currentGameState.activeQuests.findIndex(q => q.id === args.questId);
+        if (questIndex > -1) {
+          const completedQuest = currentGameState.activeQuests.splice(questIndex, 1)[0];
+          currentGameState.completedQuests++;
+          currentGameState.player.xp += args.xpGained || completedQuest.xpReward;
+          // Improved leveling calculation
+          currentGameState.player.level = Math.floor(currentGameState.player.xp / currentGameState.player.xpToNextLevel) + 1;
+          console.log(`Quest completed: ${completedQuest.title}. XP gained: ${args.xpGained || completedQuest.xpReward}`);
+        } else {
+          console.warn(`Quest with ID ${args.questId} not found`);
+        }
+        break;
+        
+      case 'log_health_activity':
+        if (!args.activityName || args.healthChange === undefined || args.xpChange === undefined) {
+          throw new Error('Missing required parameters for log_health_activity');
+        }
+        currentGameState.healthBar.current = Math.min(
+          currentGameState.healthBar.maximum, 
+          Math.max(0, currentGameState.healthBar.current + args.healthChange)
+        );
+        currentGameState.healthBar.lastUpdated = new Date().toISOString();
+        currentGameState.player.xp += args.xpChange;
+        currentGameState.player.level = Math.floor(currentGameState.player.xp / currentGameState.player.xpToNextLevel) + 1;
+        console.log(`Health activity logged: ${args.activityName}. Health change: ${args.healthChange}, XP change: ${args.xpChange}`);
+        break;
+        
+      case 'get_player_status':
+        // This function primarily retrieves, no state update needed
+        console.log('Player status requested');
+        break;
+        
+      default:
+        console.warn(`Unknown function call: ${functionName}`);
+        throw new Error(`Unknown function: ${functionName}`);
+    }
+  } catch (error) {
+    console.error(`Error in updateGameState for function ${functionName}:`, error);
+    throw error; // Re-throw to be handled by the calling function
   }
 };
 
@@ -235,7 +277,9 @@ app.post('/chat', async (req, res) => {
   logApiCall("Incoming Chat Request", { message, gameState });
 
   // Update the global game state with the latest from the client
-  currentGameState = { ...currentGameState, ...gameState };
+  if (gameState) {
+    currentGameState = { ...currentGameState, ...gameState };
+  }
 
   try {
     const model = genAI.getGenerativeModel({
@@ -292,6 +336,7 @@ app.post('/chat', async (req, res) => {
       });
     } else {
       // Fallback for unexpected responses
+      console.warn("Unexpected response format from Gemini:", response);
       return res.json({
         text: "Przepraszam, nie zrozumiałem. Czy możesz powtórzyć?",
         functionCall: null
@@ -300,23 +345,55 @@ app.post('/chat', async (req, res) => {
 
   } catch (error) {
     console.error('Error processing chat request:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      statusText: error.statusText,
+      errorDetails: error.errorDetails
+    });
+    
+    // Return more detailed error information for debugging
+    const errorMessage = error.status === 400 
+      ? 'Invalid request format. Please check the function schemas.'
+      : 'Failed to process chat request. Please try again.';
+    
     return res.status(500).json({
-      error: 'Failed to process chat request',
-      message: error.message
+      error: errorMessage,
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { 
+        details: error.errorDetails 
+      })
     });
   }
 });
 
 // Server status endpoint
 app.get('/status', (req, res) => {
-  res.status(200).send('Server is running and healthy!');
+  console.log('Status endpoint called');
+  res.status(200).json({
+    status: 'healthy',
+    message: 'Server is running and healthy!',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
 });
 
 // Endpoint to get the current game state (for client sync/debug)
 app.get('/gameState', (req, res) => {
-  res.json(currentGameState);
+  console.log('GameState endpoint called');
+  res.json({
+    ...currentGameState,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.listen(port, () => {
+  console.log(`=== RPG ADHD Server Started ===`);
   console.log(`Server listening on port ${port}`);
+  console.log(`Status endpoint: http://localhost:${port}/status`);
+  console.log(`GameState endpoint: http://localhost:${port}/gameState`);
+  console.log(`Chat endpoint: http://localhost:${port}/chat`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`CORS: Allow all origins (development mode)`);
+  console.log(`================================`);
 });
