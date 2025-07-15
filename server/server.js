@@ -52,6 +52,50 @@ const genAI = new GoogleGenerativeAI(apiKey);
 // Function schemas for Gemini function calling - CORRECTED STRUCTURE
 const functionSchemas = [
   {
+    name: "update_quest_parameters",
+    description: "Updates attributes of an active quest (title, description, priority, etc.)",
+    parameters: {
+      type: "object",
+      properties: {
+        questId: { type: "string", description: "The unique ID of the quest to update." },
+        newTitle: { type: "string", description: "New title for the quest." },
+        newDescription: { type: "string", description: "New description for the quest." },
+        newPriority: { type: "string", enum: ["low", "medium", "high"], description: "New priority level." },
+        newEstimatedTime: { type: "number", description: "New estimated time in minutes." },
+        newDifficultyLevel: { type: "number", description: "New difficulty level (1-5)." },
+        newEnergyRequired: { type: "string", enum: ["low", "medium", "high"], description: "New energy requirement." },
+        newAnxietyLevel: { type: "string", enum: ["comfortable", "challenging", "overwhelming"], description: "New anxiety level." },
+        newTags: { type: "array", items: { type: "string" }, description: "New tags array." }
+      },
+      required: ["questId"]
+    }
+  },
+  {
+    name: "remove_quest",
+    description: "Removes an active quest by its ID.",
+    parameters: {
+      type: "object",
+      properties: {
+        questId: { type: "string", description: "The unique ID of the quest to remove." }
+      },
+      required: ["questId"]
+    }
+  },
+  {
+    name: "get_quest_suggestions",
+    description: "Returns a list of suggested quests based on context (category, difficulty, energy, anxiety).",
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", enum: ["physical", "mental", "social", "nutrition", "other"], description: "Category of suggested quests." },
+        difficulty: { type: "number", description: "Desired difficulty level (1-5)." },
+        energyLevel: { type: "string", enum: ["low", "medium", "high"], description: "Required energy level." },
+        anxietyTolerance: { type: "string", enum: ["comfortable", "challenging", "overwhelming"], description: "Preferred anxiety level." }
+      },
+      required: []
+    }
+  },
+  {
     name: "set_main_quest",
     description: "Updates the main quest with a new title and description",
     parameters: {
@@ -174,17 +218,27 @@ const updateGameState = (functionName, args) => {
         if (!args.title || !args.description || !args.xpReward || !args.estimatedTime) {
           throw new Error('Missing required parameters for add_quest');
         }
+        // ...existing code...
+        // Dynamic XP modifier logic
+        let xpReward = args.xpReward;
+        if (args.tags && args.tags.includes("anxiety")) {
+          xpReward = Math.round(xpReward * 1.25);
+        }
+        // Example: boost XP if user has low energy and quest is medium/high energy
+        if (currentGameState.player.energy && currentGameState.player.energy === "low" && ["medium","high"].includes(args.energyRequired)) {
+          xpReward = Math.round(xpReward * 1.2);
+        }
         const newQuest = {
-          id: uuidv4(), // Using uuid library for reliable unique ID generation
+          id: uuidv4(),
           title: args.title,
           description: args.description,
-          type: args.type || 'daily', // Default to daily if not specified
-          xpReward: args.xpReward,
-          priority: args.priority || 'medium', // Default priority
+          type: args.type || 'daily',
+          xpReward,
+          priority: args.priority || 'medium',
           estimatedTime: args.estimatedTime,
-          difficultyLevel: args.difficultyLevel || 2, // Default difficulty
-          energyRequired: args.energyRequired || 'medium', // Default energy
-          anxietyLevel: args.anxietyLevel || 'comfortable', // Default anxiety level
+          difficultyLevel: args.difficultyLevel || 2,
+          energyRequired: args.energyRequired || 'medium',
+          anxietyLevel: args.anxietyLevel || 'comfortable',
           tags: args.tags || [],
           status: "active"
         };
@@ -213,14 +267,67 @@ const updateGameState = (functionName, args) => {
         if (!args.activityName || args.healthChange === undefined || args.xpChange === undefined) {
           throw new Error('Missing required parameters for log_health_activity');
         }
+        // ...existing code...
         currentGameState.healthBar.current = Math.min(
           currentGameState.healthBar.maximum, 
           Math.max(0, currentGameState.healthBar.current + args.healthChange)
         );
         currentGameState.healthBar.lastUpdated = new Date().toISOString();
-        currentGameState.player.xp += args.xpChange;
+        // Dynamic XP modifier for health activities
+        let xpChange = args.xpChange;
+        if (args.category === "mental" && args.healthChange > 0) {
+          xpChange = Math.round(xpChange * 1.15);
+        }
+        currentGameState.player.xp += xpChange;
         currentGameState.player.level = Math.floor(currentGameState.player.xp / currentGameState.player.xpToNextLevel) + 1;
-        console.log(`Health activity logged: ${args.activityName}. Health change: ${args.healthChange}, XP change: ${args.xpChange}`);
+        console.log(`Health activity logged: ${args.activityName}. Health change: ${args.healthChange}, XP change: ${xpChange}`);
+        break;
+        // Update attributes of an active quest
+        const questToUpdate = currentGameState.activeQuests.find(q => q.id === args.questId);
+        if (!questToUpdate) throw new Error('Quest not found for update');
+        if (args.newTitle) questToUpdate.title = args.newTitle;
+        if (args.newDescription) questToUpdate.description = args.newDescription;
+        if (args.newPriority) questToUpdate.priority = args.newPriority;
+        if (args.newEstimatedTime) questToUpdate.estimatedTime = args.newEstimatedTime;
+        if (args.newDifficultyLevel) questToUpdate.difficultyLevel = args.newDifficultyLevel;
+        if (args.newEnergyRequired) questToUpdate.energyRequired = args.newEnergyRequired;
+        if (args.newAnxietyLevel) questToUpdate.anxietyLevel = args.newAnxietyLevel;
+        if (args.newTags) questToUpdate.tags = args.newTags;
+        console.log(`Quest updated: ${questToUpdate.title} (ID: ${questToUpdate.id})`);
+        break;
+        // Remove quest by ID
+        const removeIndex = currentGameState.activeQuests.findIndex(q => q.id === args.questId);
+        if (removeIndex > -1) {
+          const removed = currentGameState.activeQuests.splice(removeIndex, 1)[0];
+          console.log(`Quest removed: ${removed.title} (ID: ${removed.id})`);
+        } else {
+          throw new Error('Quest not found for removal');
+        }
+        break;
+        // Suggest quests based on context
+        // Example static suggestions, can be replaced with smarter logic
+        const suggestions = [];
+        if (args.category === "physical") {
+          suggestions.push({ title: "Spacer na świeżym powietrzu", difficulty: 1, energyRequired: "low" });
+          suggestions.push({ title: "Trening 15 minut", difficulty: 2, energyRequired: "medium" });
+        }
+        if (args.category === "mental") {
+          suggestions.push({ title: "Medytacja 5 minut", difficulty: 1, energyRequired: "low" });
+          suggestions.push({ title: "Ćwiczenia oddechowe", difficulty: 1, energyRequired: "low" });
+        }
+        if (args.category === "social") {
+          suggestions.push({ title: "Zadzwoń do przyjaciela", difficulty: 1, energyRequired: "low" });
+        }
+        if (args.category === "nutrition") {
+          suggestions.push({ title: "Przygotuj zdrowy posiłek", difficulty: 2, energyRequired: "medium" });
+        }
+        // Filter by difficulty, energy, anxiety if provided
+        let filtered = suggestions;
+        if (args.difficulty) filtered = filtered.filter(s => s.difficulty === args.difficulty);
+        if (args.energyLevel) filtered = filtered.filter(s => s.energyRequired === args.energyLevel);
+        // Return suggestions in a way Gemini can use
+        console.log('Quest suggestions:', filtered);
+        // For Gemini, you may want to return this as a text or functionCall result
         break;
         
       case 'get_player_status':
