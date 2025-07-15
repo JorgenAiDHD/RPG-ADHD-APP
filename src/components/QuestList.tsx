@@ -54,14 +54,15 @@ const calculateGoldReward = (quest: Quest): number => {
 
 
 const QuestList = () => {
-  const { state } = useGame();
-  const { quests } = state;
+  const { state, actions } = useGame();
+  // Only show quests that are not completed
+  const activeQuests = state.quests.filter(q => q.status !== 'completed');
   // Stan do edycji questa
   const [editOpen, setEditOpen] = useState(false);
   // const [editingQuest, setEditingQuest] = useState<Quest | null>(null); // unused
   const [editQuest, setEditQuest] = useState<Quest | null>(null);
   const [editError, setEditError] = useState('');
-  const { actions } = useGame();
+  // Removed duplicate actions declaration
 
   const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (!editQuest) return;
@@ -108,7 +109,7 @@ const QuestList = () => {
         </div>
 
         {/* Empty state with clear call to action */}
-        {quests.length === 0 && (
+        {activeQuests.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-gray-50 dark:bg-blue-900/10 rounded-2xl border border-dashed border-gray-300 dark:border-blue-800/40">
             <CheckCircle size={48} className="text-gray-400 dark:text-blue-400/50 mb-4" />
             <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">No quests available</h3>
@@ -124,8 +125,9 @@ const QuestList = () => {
 
         {/* Quest List with improved spacing and readability - responsive height */}
         <div className="space-y-4 sm:space-y-5 max-h-[calc(100vh-250px)] md:max-h-[calc(100vh-220px)] lg:max-h-[60vh] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar pb-4 sm:pb-6 pt-1 sm:pt-2">
-          {quests.map((quest) => (              <motion.div 
-              key={quest.id}
+        {activeQuests.map((quest) => (
+          <motion.div 
+            key={quest.id}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
@@ -279,30 +281,14 @@ const QuestList = () => {
                         className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white shadow-md px-4 py-2.5 border border-green-500/50 rounded-xl transition-all hover:shadow-green-500/20 text-sm" 
                         onClick={() => {
                           try {
-                            // First, calculate gold reward if not explicitly set
                             const goldReward = quest.goldReward || calculateGoldReward(quest);
-                            
-                            // Complete the quest first (which will add XP)
                             actions.completeQuest(quest.id);
-                            
-                            // Then add gold reward
                             if (goldReward > 0) {
-                              
-                              // Add debug logging before calling addGold
-                              
-                              // Call addGold with proper parameters
                               actions.addGold(goldReward, `Completed quest: ${quest.title}`);
-                              
-                              // Add debug logging after calling addGold
-                              setTimeout(() => {
-                              }, 0);
+                              setTimeout(() => {}, 0);
                             } else {
-                              console.warn(`Invalid gold reward (${goldReward}) for quest: ${quest.title}`);
-                              // Fallback to minimum reward if something went wrong
                               actions.addGold(1, `Completed quest: ${quest.title}`);
                             }
-                            
-                            // Update streak
                             actions.updateStreak();
                           } catch (error) {
                             console.error('Error completing quest:', error);
@@ -325,6 +311,13 @@ const QuestList = () => {
                       onClick={() => openEditDialog(quest)}
                     >
                       <Edit3 size={18} /> Edit Quest
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white shadow-md px-4 py-2.5 border border-red-500/50 rounded-xl transition-all hover:shadow-red-500/20 text-sm"
+                      onClick={() => actions.removeQuest(quest.id)}
+                    >
+                      Usuń
                     </Button>
                   </div>
                 </div>

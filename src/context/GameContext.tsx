@@ -18,7 +18,7 @@ import type { GeneralAction } from '../reducers/generalReducer';
 
 // Główny reducer, który deleguje akcje do mniejszych reducerów
 // Definicja wszystkich możliwych akcji w grze
-type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction;
+type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | { type: 'REMOVE_QUEST'; payload: string };
 
 
 const initialState: GameState = {
@@ -191,6 +191,7 @@ interface GameContextType {
   state: GameState;
   actions: {
     completeQuest: (questId: string) => void;
+    removeQuest: (questId: string) => void;
     addXP: (xpGain: XPGain) => void;
     addQuest: (quest: Quest) => void;
     editQuest: (quest: Quest) => void;
@@ -337,6 +338,7 @@ function GameProvider({ children }: { children: ReactNode }) {
   const actions = {
     editQuest: (quest: Quest) => dispatch({ type: 'EDIT_QUEST', payload: quest }),
     completeQuest: (questId: string) => dispatch({ type: 'COMPLETE_QUEST', payload: questId }),
+    removeQuest: (questId: string) => dispatch({ type: 'REMOVE_QUEST', payload: questId }),
     addXP: (xpGain: XPGain) => dispatch({ type: 'ADD_XP', payload: xpGain }),
     addQuest: (quest: Quest) => dispatch({ type: 'ADD_QUEST', payload: quest }),
     updateHealth: (change: number, activity?: HealthActivity) => dispatch({ type: 'UPDATE_HEALTH', payload: { change, activity } }),
