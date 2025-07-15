@@ -178,7 +178,7 @@ app.post('/chat', async (req, res) => {
             temperature: 0.7,
           },
           tools: [{ functionDeclarations: functionSchemas }],
-          systemInstruction: { role: 'system', parts: [systemPrompt] }
+          systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] }
         });
 
         console.log("Sending to Gemini with context:", { message, systemPrompt });
@@ -275,7 +275,7 @@ app.post('/chat', async (req, res) => {
                 temperature: 0.7,
               },
               tools: [{ functionDeclarations: functionSchemas }],
-              systemInstruction: { role: 'system', parts: [simplePrompt] }
+              systemInstruction: { role: 'system', parts: [{ text: simplePrompt }] }
             });
             
             console.log("Retrying with simplified prompt");
