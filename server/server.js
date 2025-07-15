@@ -285,16 +285,22 @@ app.post('/chat', async (req, res) => {
       
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash",
-        systemInstruction: getSystemInstruction(currentGameState),
         tools: [{ function_declarations: functionSchemas }], // Pass the function schemas as tools
       });
 
+      // System prompt for ADHD-friendly AI Companion
+      const systemPrompt = `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest **proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG**.\n\n**Zasady Działania:**\n\n1.  **Działaj proaktywnie i minimalizuj interakcje:** Jeśli Twoje narzędzia pozwalają na wykonanie prośby użytkownika (np. \`add_quest\`, \`log_health_activity\`, \`set_main_quest\`), **wykonaj je natychmiast**, uzupełniając brakujące parametry **sensownymi wartościami domyślnymi**, jeśli użytkownik ich nie podał.\n    * **Przykłady domyślnych wartości (dla \`add_quest\`):**\n        * \`type\`: \`daily\` (jeśli nie wskazano inaczej)\n        * \`priority\`: \`medium\` (jeśli nie wskazano inaczej)\n        * \`estimatedTime\`: 15 (jeśli nie wskazano inaczej, w minutach)\n        * \`difficultyLevel\`: 2 (jeśli nie wskazano inaczej)\n        * \`xpReward\`: \`estimatedTime\` (w minutach) lub 15 (jeśli czas nie jest podany)\n        * \`energyRequired\`: \`medium\` (jeśli nie wskazano inaczej)\n        * \`anxietyLevel\`: \`comfortable\` (jeśli nie wskazano inaczej)\n        * \`tags\`: Wnioskuj na podstawie tytułu/opisu.\n    * **NIE pytaj o potwierdzenie** po uzupełnieniu wartości. Po prostu wykonaj zadanie i poinformuj o tym użytkownika.\n    * **NIE pytaj o to, czy dodać jako osobne questy**, jeśli użytkownik prosi o kilka rzeczy. **Zawsze dodawaj jako osobne questy**, chyba że kontekst jasno wskazuje na jedno złożone zadanie.\n2.  **Odpowiedzi na status:** Po wykonaniu wywołania funkcji \`get_player_status\`, przedstaw status w zwięzłej i klarownej formie. **NIE wykonuj ponownie \`get_player_status\`** w tej samej turze, jeśli już raz go wykonałeś lub jeśli udzieliłeś odpowiedzi tekstowej zawierającej te dane.\n3.  **Klarowność i zwięzłość:** Odpowiadaj bezpośrednio i zwięźle. Unikaj zbędnych pytań, jeśli możesz samodzielnie wydedukować intencje lub uzupełnić dane.\n4.  **Ucz się i dostosowuj:** Z czasem, na podstawie moich interakcji, staraj się lepiej przewidywać moje preferencje dotyczące wartości domyślnych i typu zadań.\n5.  **Jasno informuj o wykonanych akcjach:** Po udanym wywołaniu funkcji, krótko potwierdź, co zostało zrobione (np. "Dodano quest: [Tytuł]").\n\n---\n\n### **Dalsze Kroki Rozwoju**\n\n1.  **Implementacja promptu systemowego:** Zintegruj powyższy prompt z Twoim wywołaniem Gemini API w \`server.js\`.\n    * **Jeżeli używasz \`GoogleGenerativeAI\` w Node.js**, poszukaj opcji \`systemInstruction\` w konfiguracji modelu lub \`startChat\`. Jeżeli nie jest dostępna, możesz umieścić ten prompt jako pierwszą wiadomość w historii konwersacji, oznaczając ją jako pochodzącą od roli \`user\`, zanim zaczniesz faktyczną konwersację z użytkownikiem.\n2.  **Testowanie:** Dokładnie przetestuj, czy model teraz poprawnie interpretuje intencje i proaktywnie tworzy zadania bez nadmiernych pytań.\n3.  **Monitorowanie zachowania:** Obserwuj logi, aby upewnić się, że model faktycznie przestrzega nowych zasad i nie generuje niepotrzebnych pytań lub powtórzeń.\n\nWdrożenie tego poprawionego promptu systemowego powinno znacząco poprawić "logikę" Twojego AI Companaion, czyniąc go bardziej intuicyjnym i pomocnym dla użytkowników z ADHD.";
+
+      // Start chat with system prompt as first message
       const chat = model.startChat({
         generationConfig: {
           temperature: 0.7,
           topP: 0.9,
           topK: 1
         },
+        history: [
+          { role: "user", parts: [systemPrompt] },
+        ]
       });
 
       const result = await chat.sendMessage(message);
@@ -313,8 +319,9 @@ app.post('/chat', async (req, res) => {
       
       if (functionCalls && functionCalls.length > 0) {
         const functionCall = functionCalls[0].functionCall;
-        const { name, args } = functionCall;
-        console.log(`Gemini requested function call: ${name} with args:`, args);
+        const name = functionCall.name;
+        const args = functionCall.args;
+        console.log('Gemini requested function call:', name, 'with args:', args);
 
         // Execute the function on the server side
         updateGameState(name, args);
@@ -342,14 +349,12 @@ app.post('/chat', async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(`Attempt ${attempt} failed:`, error.message);
-      
+      console.error('Attempt', attempt, 'failed:', error.message);
       if (error.status === 503 && attempt < maxRetries) {
-        console.log(`Retrying in ${retryDelay}ms...`);
+        console.log('Retrying in', retryDelay, 'ms...');
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         continue;
       }
-      
       console.error('Error processing chat request:', error);
       console.error('Error details:', {
         message: error.message,
@@ -399,12 +404,12 @@ app.get('/gameState', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`=== RPG ADHD Server Started ===`);
-  console.log(`Server listening on port ${port}`);
-  console.log(`Status endpoint: http://localhost:${port}/status`);
-  console.log(`GameState endpoint: http://localhost:${port}/gameState`);
-  console.log(`Chat endpoint: http://localhost:${port}/chat`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`CORS: Allow all origins (development mode)`);
-  console.log(`================================`);
+  console.log('=== RPG ADHD Server Started ===');
+  console.log('Server listening on port', port);
+  console.log('Status endpoint: http://localhost:' + port + '/status');
+  console.log('GameState endpoint: http://localhost:' + port + '/gameState');
+  console.log('Chat endpoint: http://localhost:' + port + '/chat');
+  console.log('Environment:', process.env.NODE_ENV || 'development');
+  console.log('CORS: Allow all origins (development mode)');
+  console.log('================================');
 });
