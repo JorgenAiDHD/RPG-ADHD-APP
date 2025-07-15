@@ -16,12 +16,8 @@ import axios from 'axios';
  */
 const AICompanion = () => {
 
-  // Determine the AI server URL based on the environment
-  // In a deployed environment (e.g., GitHub Pages), REACT_APP_AI_SERVER_URL will be set to your PC's local IP.
-  // In a local development environment, it will default to localhost.
-  const serverUrl = process.env.NODE_ENV === 'production'
-    ? process.env.REACT_APP_AI_SERVER_URL
-    : `http://localhost:3001`;
+  // Ustawiamy na stałe publiczny adres ngrok, aby działało wszędzie
+  const serverUrl = "https://39a231890547.ngrok-free.app";
   console.log(`AI Companion connecting to: ${serverUrl}`);
   const { state, actions } = useGame();
   const [input, setInput] = useState('');
