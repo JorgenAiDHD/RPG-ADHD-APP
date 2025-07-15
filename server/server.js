@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Load environment variables
@@ -155,7 +156,7 @@ const updateGameState = (functionName, args) => {
       break;
     case 'add_quest':
       const newQuest = {
-        id: crypto.randomUUID(), // Requires Node.js v15.0.0+ or polyfill for crypto.randomUUID()
+        id: uuidv4(), // Używa zainstalowanej biblioteki uuid do generowania unikalnego ID
         title: args.title,
         description: args.description,
         type: args.type,
