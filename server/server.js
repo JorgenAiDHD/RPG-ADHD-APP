@@ -132,7 +132,7 @@ app.post('/chat', async (req, res) => {
   try {
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
-      tools: functionSchemas,
+      tools: [{ function_declarations: functionSchemas }],
     });
 
     const chat = model.startChat({
@@ -140,7 +140,7 @@ app.post('/chat', async (req, res) => {
       generationConfig: {
         temperature: 0.7,
       },
-      systemInstruction: customParts(gameState),
+      systemInstruction: customParts(gameState).map(p => p.text).join("\n\n"),
     });
 
     const result = await chat.sendMessage(message);
