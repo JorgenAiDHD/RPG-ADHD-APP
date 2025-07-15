@@ -15,7 +15,6 @@ import axios from 'axios';
  * Uses the aiCompanion utility for natural language processing of commands.
  */
 const AICompanion = () => {
-  const AI_SERVER_PORT = 3001; // Port, na którym nasłuchuje Twój serwer AI
 
   // Determine the AI server URL based on the environment
   // In a deployed environment (e.g., GitHub Pages), REACT_APP_AI_SERVER_URL will be set to your PC's local IP.
