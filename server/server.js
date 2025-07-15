@@ -374,8 +374,8 @@ const getSystemInstruction = (gameState) => {
 
 
 app.post('/chat', async (req, res) => {
-  const { message, gameState } = req.body;
-  logApiCall("Incoming Chat Request", { message, gameState });
+  const { message, gameState, history } = req.body;
+  logApiCall("Incoming Chat Request", { message, gameState, history });
 
   // Update the global game state with the latest from the client
   if (gameState) {
@@ -395,32 +395,35 @@ app.post('/chat', async (req, res) => {
         tools: [{ function_declarations: functionSchemas }], // Pass the function schemas as tools
       });
 
-      // System prompt for ADHD-friendly AI Companion
-      const systemPrompt = `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
+      // Use provided history if available, otherwise fallback to system prompt
+      let chatHistory = Array.isArray(history) && history.length > 0
+        ? history
+        : [
+            { role: "user", parts: [
+              `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
 
-      Zasady Działania:
+              Zasady Działania:
 
-      1. Działaj proaktywnie i minimalizuj interakcje: Jeśli Twoje narzędzia pozwalają na wykonanie prośby użytkownika (np. add_quest, log_health_activity, set_main_quest), wykonaj je natychmiast, uzupełniając brakujące parametry sensownymi wartościami domyślnymi, jeśli użytkownik ich nie podał.
-Przykłady domyślnych wartości (dla add_quest):
-type: daily (jeśli nie wskazano inaczej)
-estimatedTime: 15 (jeśli nie wskazano inaczej, w minutach)
-difficultyLevel: 2 (jeśli nie wskazano inaczej)
-xpReward: estimatedTime (w minutach) lub 15 (jeśli czas nie jest podany)
-energyRequired: medium (jeśli nie wskazano inaczej)
-anxietyLevel: comfortable (jeśli nie wskazano inaczej)
-tags: Wnioskuj na podstawie tytułu/opisu.
-NIE pytaj o potwierdzenie po uzupełnieniu wartości. Po prostu wykonaj zadanie i poinformuj o tym użytkownika.
-NIE pytaj o to, czy dodać jako osobne questy, jeśli użytkownik prosi o kilka rzeczy. Zawsze dodawaj jako osobne questy, chyba że kontekst jasno wskazuje na jedno złożone zadanie.
-      // Start chat with system prompt as first message
+              1. Działaj proaktywnie i minimalizuj interakcje: Jeśli Twoje narzędzia pozwalają na wykonanie prośby użytkownika (np. add_quest, log_health_activity, set_main_quest), wykonaj je natychmiast, uzupełniając brakujące parametry sensownymi wartościami domyślnymi, jeśli użytkownik ich nie podał.
+              Przykłady domyślnych wartości (dla add_quest):
+              type: daily (jeśli nie wskazano inaczej)
+              estimatedTime: 15 (jeśli nie wskazano inaczej, w minutach)
+              difficultyLevel: 2 (jeśli nie wskazano inaczej)
+              xpReward: estimatedTime (w minutach) lub 15 (jeśli czas nie jest podany)
+              energyRequired: medium (jeśli nie wskazano inaczej)
+              anxietyLevel: comfortable (jeśli nie wskazano inaczej)
+              tags: Wnioskuj na podstawie tytułu/opisu.
+              NIE pytaj o potwierdzenie po uzupełnieniu wartości. Po prostu wykonaj zadanie i poinformuj o tym użytkownika.
+              NIE pytaj o to, czy dodać jako osobne questy, jeśli użytkownik prosi o kilka rzeczy. Zawsze dodawaj jako osobne questy, chyba że kontekst jasno wskazuje na jedno złożone zadanie.` ] }
+          ];
+
       const chat = model.startChat({
         generationConfig: {
           temperature: 0.7,
           topP: 0.9,
           topK: 1
         },
-        history: [
-          { role: "user", parts: [systemPrompt] },
-        ]
+        history: chatHistory
       });
 
       const result = await chat.sendMessage(message);
