@@ -15,6 +15,10 @@ import axios from 'axios';
  * Uses the aiCompanion utility for natural language processing of commands.
  */
 const AICompanion = () => {
+  // Use local network address for server connections
+  const serverHost = window.location.hostname;
+  // Use protocol-relative URL to avoid Mixed Content (works for both http and https)
+  const serverUrl = `${window.location.protocol}//${serverHost}:3001`;
   const { state, actions } = useGame();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,24 +31,16 @@ const AICompanion = () => {
   useEffect(() => {
     const checkServerStatus = async () => {
       try {
-        // Spróbujmy najpierw na adresie lokalnym sieci
-        try {
-          await axios.get('http://192.168.1.5:3001/status');
-          setServerStatus('connected');
-          // Usuń błąd związany z brakiem połączenia, jeśli był wyświetlany
-          const errorDiv = document.querySelector('.error-message');
-          if (errorDiv && errorDiv.textContent?.includes('server')) {
-            errorDiv.textContent = '';
-          }
-          return; // Jeśli połączenie się udało, zakończ funkcję
-        } catch (localErr) {
-          console.warn("Could not connect to 192.168.1.5:3001");
+        await axios.get(`${serverUrl}/status`);
+        setServerStatus('connected');
+        // Usuń błąd związany z brakiem połączenia, jeśli był wyświetlany
+        const errorDiv = document.querySelector('.error-message');
+        if (errorDiv && errorDiv.textContent?.includes('server')) {
+          errorDiv.textContent = '';
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error connecting to server:", err);
         setServerStatus('error');
-        
-        // Pokaż informację o błędzie z dokładniejszą instrukcją
         toast.error(
           "Nie można połączyć z serwerem AI", 
           { 
@@ -244,18 +240,17 @@ const AICompanion = () => {
       
       let response;
       try {
-        // Spróbuj z adresem lokalnym sieci
-        response = await axios.post('http://192.168.1.5:3001/chat', {
+        response = await axios.post(`${serverUrl}/chat`, {
           message: input,
           gameState: gameStateSummary
         });
-        console.log("Successfully sent request to 192.168.1.5:3001");
-      } catch (localErr) {
-        console.warn("Failed to connect to 192.168.1.5:3001", localErr);
+        console.log(`Successfully sent request to ${serverUrl}`);
+      } catch (err) {
+        console.warn(`Failed to connect to ${serverUrl}`, err);
       }
 
       if (!response || !response.data) {
-        setCompanionResponse("⚠️ I couldn't get a response from the AI server. Please make sure the server is running at http://192.168.1.5:3001 and try again.");
+        setCompanionResponse(`⚠️ I couldn't get a response from the AI server. Please make sure the server is running at ${serverUrl} and try again.`);
         setIsLoading(false);
         setInput('');
         if (textareaRef.current) {
@@ -697,13 +692,13 @@ W jaki sposób mogę Ci dziś pomóc?`);
         setCompanionResponse("I received an unexpected response from the server. Please try again later.");
       }
       
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error processing command:", err);
       
       // Bardziej szczegółowa informacja o błędzie
       if (axios.isAxiosError(err)) {
         if (err.code === 'ECONNREFUSED' || !err.response) {
-          setCompanionResponse("⚠️ I couldn't connect to the AI server. Please make sure the server is running at http://192.168.1.5:3001 and try again.");
+          setCompanionResponse(`⚠️ I couldn't connect to the AI server. Please make sure the server is running at ${serverUrl} and try again.`);
         } else if (err.response && err.response.status === 429) {
           setCompanionResponse("⚠️ The API rate limit has been exceeded. Please wait a moment and try again.");
         } else {

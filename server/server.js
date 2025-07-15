@@ -10,6 +10,9 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
+// To restrict CORS to your GitHub Pages domain, use:
+// app.use(cors({ origin: 'https://TWOJA_NAZWA_UZYTKOWNIKA_GITHUB.github.io' }));
+// Replace with your actual GitHub Pages URL if needed.
 app.use(cors());
 app.use(express.json());
 
