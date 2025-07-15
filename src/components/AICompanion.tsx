@@ -25,6 +25,7 @@ const AICompanion = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [companionResponse, setCompanionResponse] = useState<string | null>(null);
   const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [chatHistory, setChatHistory] = useState<Array<{role: string, parts: Array<{text: string}>}>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Check server status on component mount and periodically
@@ -149,10 +150,8 @@ const AICompanion = () => {
   // Process the user's command via the backend server
   const processCommand = async () => {
     if (!input.trim()) return;
-    
     setIsLoading(true);
     setCompanionResponse(null);
-    
     // Najpierw sprawdź, czy to prosta komenda dotycząca UI
     const isUICommand = handleUISettingCommand(input);
     if (isUICommand) {
@@ -160,7 +159,6 @@ const AICompanion = () => {
       setInput('');
       return;
     }
-    
     // Sprawdź czy to komenda przypomnienia
     const isReminderCommand = handleReminderRequest(input);
     if (isReminderCommand) {
@@ -168,7 +166,6 @@ const AICompanion = () => {
       setInput('');
       return;
     }
-    
     // Następnie sprawdź, czy użytkownik wykazuje negatywne emocje
     const isNegativeEmotion = detectNegativeSentiment(input);
     if (isNegativeEmotion) {
@@ -176,8 +173,11 @@ const AICompanion = () => {
       setInput('');
       return;
     }
-    
     // Sprawdź, czy użytkownik prosi o trudne zadanie - w takim przypadku zasugeruj podział na mniejsze kroki
+    // --- Update chatHistory ---
+    let newHistory = [...chatHistory, { role: 'user', parts: [{ text: input }] }];
+    // Limit to last 15 exchanges (user/model pairs)
+    if (newHistory.length > 30) newHistory = newHistory.slice(-30);
     const isDifficultTaskRequest = detectDifficultTaskRequest(input);
     if (isDifficultTaskRequest) {
       setIsLoading(false);
@@ -243,7 +243,8 @@ const AICompanion = () => {
       try {
         response = await axios.post(`${serverUrl}/chat`, {
           message: input,
-          gameState: gameStateSummary
+          gameState: gameStateSummary,
+          history: newHistory
         });
         console.log(`Successfully sent request to ${serverUrl}`);
       } catch (err) {
@@ -687,6 +688,12 @@ W jaki sposób mogę Ci dziś pomóc?`);
         // Use enhanceAIResponse to improve the response with ADHD-friendly tips
         const enhancedResponse = enhanceAIResponse(responseData.text);
         setCompanionResponse(enhancedResponse);
+        // Add model response to chatHistory
+        setChatHistory(h => {
+          let updated = [...h, { role: 'model', parts: [{ text: responseData.text }] }];
+          if (updated.length > 30) updated = updated.slice(-30);
+          return updated;
+        });
       } 
       // Handle unexpected response
       else {
@@ -1182,6 +1189,9 @@ Czy chcesz teraz zająć się tym zadaniem? Mogę pomóc Ci rozbić je na mniejs
           <p className="mb-2">
             Your AI Companion is powered by Google Gemini and understands a wide range of natural language requests.
             Try asking for help, status updates, or managing your quests and activities.
+          </p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Twój AI Companion utrzymuje kontekst rozmowy (pamięta ostatnie 10–15 par wiadomości). Jeśli rozmowa staje się bardzo długa, zalecamy rozpoczęcie nowej konwersacji (odśwież stronę lub kliknij przycisk resetu), aby zachować świeżość kontekstu i jakość odpowiedzi.
           </p>
           <div className="flex items-center justify-end">
             <div className={`flex items-center ${

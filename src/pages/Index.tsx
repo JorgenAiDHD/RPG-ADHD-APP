@@ -1,3 +1,4 @@
+// import AICompanion from '../components/AICompanion';
 // Główna strona aplikacji, łącząca wszystkie komponenty.
 import { motion } from 'framer-motion';
 import AchievementsDialog from '../components/AchievementsDialog';
@@ -69,22 +70,7 @@ const Index = () => {
         </div>
 
         {/* AI Companion */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-24 mb-16 relative"
-        >
-          <div className="absolute -top-10 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
-          <h2 className="text-2xl font-bold text-center text-indigo-300 mb-8 flex items-center justify-center gap-3">
-            <span className="w-8 h-px bg-gradient-to-r from-transparent to-indigo-500/50"></span>
-            <span>Your Adventure Assistant</span>
-            <span className="w-8 h-px bg-gradient-to-l from-transparent to-indigo-500/50"></span>
-          </h2>
-          <div className="max-w-4xl mx-auto">
-            <AICompanion />
-          </div>
-        </motion.div>
+        {/* AI Companion removed for ADHD-friendly UI simplification */}
 
         {/* Footer */}
         <motion.div

@@ -134,11 +134,7 @@ const AIChatbotDialog = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-cyan-600 hover:bg-cyan-700 shadow-lg shadow-cyan-900/50 text-white font-bold py-2 px-4 rounded-full flex items-center gap-2">
-          <MessageSquare size={20} /> AI Companion
-        </Button>
-      </DialogTrigger>
+      {/* AI Companion button removed for ADHD-friendly UI simplification */}
       <DialogContent className="max-w-lg w-full rounded-2xl p-6 bg-white dark:bg-zinc-900 shadow-2xl border border-cyan-200 dark:border-zinc-800 flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-extrabold mb-2 text-cyan-700 dark:text-cyan-300 tracking-tight">AI Companion</DialogTitle>
