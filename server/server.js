@@ -12,11 +12,19 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
-// CORS Configuration - DEVELOPMENT ONLY
-// WARNING: origin: '*' allows all domains - restrict to specific domains in production
-// Production should use: origin: ['https://jorgenaidhd.github.io', 'https://localhost:3000']
+// CORS Configuration - secure and production-ready
+const allowedOrigins = [
+  'https://jorgenaidhd.github.io',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+];
 app.use(cors({
-  origin: '*',
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow curl/postman
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
