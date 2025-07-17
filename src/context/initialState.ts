@@ -78,4 +78,86 @@ export const initialState: GameState = {
   aiChatDefaultPrompt: '',
   aiChatHistory: [],
   healthActionTypes: [],
+  
+  // v0.2 New Fields
+  skillChart: {
+    skills: [
+      { 
+        id: 'focus', 
+        name: 'Focus', 
+        level: 1, 
+        experience: 0,
+        maxLevel: 50,
+        category: 'mental',
+        icon: '🎯',
+        description: 'Ability to maintain concentration and avoid distractions'
+      },
+      { 
+        id: 'meditation', 
+        name: 'Meditation', 
+        level: 1, 
+        experience: 0,
+        maxLevel: 50,
+        category: 'mental',
+        icon: '🧘',
+        description: 'Practice of mindfulness and inner peace'
+      },
+      { 
+        id: 'exercise', 
+        name: 'Exercise', 
+        level: 1, 
+        experience: 0,
+        maxLevel: 50,
+        category: 'physical',
+        icon: '💪',
+        description: 'Physical fitness and strength training'
+      },
+      { 
+        id: 'diet', 
+        name: 'Diet', 
+        level: 1, 
+        experience: 0,
+        maxLevel: 50,
+        category: 'physical',
+        icon: '🥗',
+        description: 'Healthy eating habits and nutrition'
+      },
+      { 
+        id: 'learning', 
+        name: 'Learning', 
+        level: 1, 
+        experience: 0,
+        maxLevel: 50,
+        category: 'creative',
+        icon: '📚',
+        description: 'Acquiring new knowledge and skills'
+      },
+      { 
+        id: 'creativity', 
+        name: 'Creativity', 
+        level: 1, 
+        experience: 0,
+        maxLevel: 50,
+        category: 'creative',
+        icon: '🎨',
+        description: 'Artistic expression and innovative thinking'
+      }
+    ],
+    overallLevel: 1,
+    strongestSkill: 'focus',
+    weakestSkill: 'creativity',
+    balance: 100
+  },
+  activeQuestId: null,
+  repeatableActions: [],
+  undoHistory: [],
+  currentCharacterClass: undefined,
+  playerSkills: [],
+  activeChallenges: [],
+  completedChallenges: [],
+  habitBosses: [],
+  
+  // Enhanced Tracking & Analytics v0.2
+  journals: [],
+  streakChallenges: []
 };

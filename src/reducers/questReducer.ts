@@ -1,6 +1,7 @@
 import type { GameState, Quest, ActivityLog, Collectible } from '../types/game';
 import { XPSystem } from '../utils/xpSystem';
 import { CollectibleSystem } from '../utils/collectibles';
+import { SkillChartSystem } from '../utils/characterClasses';
 import { toast } from 'sonner';
 
 export type QuestAction =
@@ -41,13 +42,25 @@ export function questReducer(state: GameState, action: QuestAction): Partial<Gam
       }
       const activity: ActivityLog = { id: crypto.randomUUID(), type: 'quest_completed', description: `Completed "${quest.title}"`, timestamp: new Date(), xpGained: xpResult.actualXPGained };
       const currentStatistics = state.statistics || { totalXPEarned: 0, totalQuestsCompleted: 0, longestStreak: 0, currentStreak: 0, averageTaskCompletionTime: 0, favoriteQuestTypes: [], collectiblesFound: 0, healthActivitiesLogged: 0 };
+      
+      // Update player skills based on quest completion
+      const updatedSkills = SkillChartSystem.updateSkillFromActivity(
+        state.playerSkills || SkillChartSystem.getDefaultSkills(),
+        'quest_completed',
+        quest.category
+      );
+      const updatedSkillChart = SkillChartSystem.generateSkillChart(updatedSkills);
+      
       return {
         player: { ...state.player, xp: xpResult.newXP, level: xpResult.newLevel, xpToNextLevel: XPSystem.calculateXPForLevel(xpResult.newLevel + 1), skillPoints: state.player.skillPoints + (xpResult.levelUpResult.skillPointsEarned || 0) },
         healthBar: { ...state.healthBar, current: Math.min(state.healthBar.maximum, state.healthBar.current + healthBonus) },
         quests: state.quests.map(q => q.id === action.payload ? { ...q, status: 'completed' as const, completedDate: new Date() } : q),
         collectibles: newCollectible ? [...state.collectibles, newCollectible] : state.collectibles,
         statistics: { ...currentStatistics, totalQuestsCompleted: currentStatistics.totalQuestsCompleted + 1, totalXPEarned: currentStatistics.totalXPEarned + xpResult.actualXPGained, collectiblesFound: newCollectible ? currentStatistics.collectiblesFound + 1 : currentStatistics.collectiblesFound },
-        recentActivity: [activity, ...state.recentActivity.slice(0, 9)]
+        recentActivity: [activity, ...state.recentActivity.slice(0, 9)],
+        // Update skills and skill chart
+        playerSkills: updatedSkills,
+        skillChart: updatedSkillChart
       };
     }
     case 'ADD_QUEST':
@@ -57,7 +70,7 @@ export function questReducer(state: GameState, action: QuestAction): Partial<Gam
     case 'SET_MAIN_QUEST':
       return { mainQuest: { ...action.payload, isActive: true } };
     case 'SET_ACTIVE_QUEST':
-      return { quests: state.quests.map(q => ({ ...q })) };
+      return { activeQuestId: action.payload };
     default:
       return {};
   }

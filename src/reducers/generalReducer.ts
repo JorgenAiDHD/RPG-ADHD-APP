@@ -1,4 +1,5 @@
 import type { GameState, ActivityLog, Season, HealthActivity, HealthActivityType, ChatMessage } from '../types/game';
+import { SkillChartSystem } from '../utils/characterClasses';
 
 export type GeneralAction =
   | { type: 'LOAD_GAME_STATE'; payload: GameState }
@@ -30,10 +31,25 @@ export function generalReducer(state: GameState, action: GeneralAction): Partial
         }
       };
 
-    case 'LOG_ACTIVITY':
-      return {
+    case 'LOG_ACTIVITY': {
+      let updates: Partial<GameState> = {
         recentActivity: [action.payload, ...state.recentActivity.slice(0, 9)]
       };
+
+      // Update skills if it's a focus session
+      if (action.payload.type === 'focus_session') {
+        const updatedSkills = SkillChartSystem.updateSkillFromActivity(
+          state.playerSkills || SkillChartSystem.getDefaultSkills(),
+          'focus_session'
+        );
+        const updatedSkillChart = SkillChartSystem.generateSkillChart(updatedSkills);
+        
+        updates.playerSkills = updatedSkills;
+        updates.skillChart = updatedSkillChart;
+      }
+
+      return updates;
+    }
 
     case 'UPDATE_SEASON':
       return {

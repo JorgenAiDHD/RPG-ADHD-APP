@@ -5,7 +5,9 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from 
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { QUEST_TEMPLATES, getTemplatesByCategory, type QuestTemplate } from '../data/questTemplates';
 
 import type { ChangeEvent, FormEvent } from 'react';
 import type { Quest } from '../types/game';
@@ -32,6 +34,32 @@ const NewQuestDialog = () => {
   const [open, setOpen] = useState(false);
   const [quest, setQuest] = useState({ ...defaultQuest });
   const [error, setError] = useState('');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Get filtered templates
+  const filteredTemplates = selectedCategory === 'all' 
+    ? QUEST_TEMPLATES 
+    : getTemplatesByCategory(selectedCategory);
+
+  const applyTemplate = (template: QuestTemplate) => {
+    setQuest({
+      ...quest,
+      title: template.title,
+      description: template.description,
+      category: template.category,
+      type: template.type,
+      xpReward: template.xpReward,
+      goldReward: template.goldReward,
+      priority: template.priority,
+      estimatedTime: template.estimatedTime,
+      difficultyLevel: template.difficultyLevel,
+      energyRequired: template.energyRequired,
+      anxietyLevel: template.anxietyLevel,
+      tags: [...template.tags]
+    });
+    setShowTemplates(false);
+  };
 
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -104,6 +132,80 @@ const NewQuestDialog = () => {
             {quest.type === 'main' ? 'Add Main Quest' : 'Add New Quest'}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Quick Templates Section */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Quick Templates</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="text-xs"
+            >
+              <Sparkles size={14} className="mr-1" />
+              {showTemplates ? 'Hide' : 'Show'} Templates
+            </Button>
+          </div>
+          
+          {showTemplates && (
+            <div className="space-y-3">
+              {/* Category Filter */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-2 py-1 text-xs rounded-full border ${
+                    selectedCategory === 'all'
+                      ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400'
+                  }`}
+                >
+                  All
+                </button>
+                {['work', 'health', 'learning', 'personal', 'creative', 'social'].map(category => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-2 py-1 text-xs rounded-full border ${
+                      selectedCategory === category
+                        ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400'
+                    }`}
+                  >
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Templates Grid */}
+              <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                {filteredTemplates.slice(0, 6).map(template => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyTemplate(template)}
+                    className="text-left p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{template.icon}</span>
+                      <span className="font-medium text-sm">{template.title}</span>
+                      <Badge className="ml-auto text-xs px-1.5 py-0.5">
+                        {template.xpReward} XP
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
+                      {template.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <form className="space-y-6" onSubmit={(e: FormEvent) => { e.preventDefault(); handleAdd(); }}>
           <div>
             <label className="block text-base font-semibold mb-1">Title</label>

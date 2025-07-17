@@ -12,6 +12,7 @@ export interface GameContextType {
   dispatch: React.Dispatch<GameAction>;
 }
 // Definicje typów dla całej aplikacji.
+import type { RepeatableAction } from '../utils/repeatableActions';
 
 export interface Player {
   id: string;
@@ -144,6 +145,21 @@ export interface Statistics {
   favoriteQuestTypes: string[];
   collectiblesFound: number;
   healthActivitiesLogged: number;
+  
+  // Enhanced Statistics for UX/UI Enhancements v0.2
+  longestFocusSession: number; // in minutes
+  taskSwitchesInDay: number;
+  creativeTasksThisWeek: number;
+  quickTasksCompleted: number; // tasks completed in <5 min
+  maxTaskCombo: number; // consecutive tasks without breaks
+  bigTasksCompleted: number; // major/difficult tasks
+  morningActivitiesStreak: number;
+  movementForFocus: number; // times exercise was used for focus
+  systemImprovements: number; // bugs fixed/systems improved
+  automatedSystems: number; // automated habits/systems
+  routineConsistency: number; // days of consistent routine
+  specialInterestHours: number; // hours on special interests
+  sensoryManagement: number; // successful sensory environment management
 }
 
 export interface ActivityLog {
@@ -172,6 +188,14 @@ export interface Achievement {
   description: string;
   icon: string;
   criteria: (state: GameState) => boolean;
+  
+  // Enhanced Achievement Properties for UX/UI Enhancements v0.2
+  category?: 'milestone' | 'adhd_strength' | 'gamer' | 'athlete' | 'developer' | 'neurodivergent';
+  rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  tips?: string[];
+  adhdBenefit?: string;
+  unlockedAt?: Date;
+  progressNotification?: boolean;
 }
 
 export interface Skill {
@@ -190,11 +214,106 @@ export interface ChatMessage {
   text: string;
 }
 
+// Undo System for v0.2
+export interface UndoAction {
+  id: string;
+  type: 'quest_completed' | 'health_activity' | 'repeatable_action' | 'xp_gained' | 'gold_spent';
+  timestamp: Date;
+  description: string;
+  revertAction: () => void;
+  originalState: any; // Store original state for reverting
+  canUndo: boolean;
+  undoTimeLimit: number; // Minutes after which undo is no longer available
+}
+
+// Character Classes & Stats System for v0.2
+export interface CharacterClass {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  tier: 'basic' | 'advanced' | 'master';
+}
+
+export interface PlayerSkill {
+  id: string;
+  name: string;
+  level: number;
+  experience: number;
+  maxLevel: number;
+  category: 'physical' | 'mental' | 'social' | 'creative' | 'technical';
+  icon: string;
+  description: string;
+}
+
+export interface SkillChart {
+  skills: PlayerSkill[];
+  overallLevel: number;
+  strongestSkill: string;
+  weakestSkill: string;
+  balance: number; // 0-100, how balanced the skills are
+}
+
+// Super Challenges & Habit Bosses for v0.2
+export interface SuperChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: 'mind_control' | 'creative' | 'memory' | 'focus' | 'physical' | 'social' | 'habit_boss';
+  category: 'instant' | 'daily' | 'weekly' | 'progressive';
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert' | 'legendary';
+  duration: number;
+  xpReward: number;
+  goldReward: number;
+  unlockLevel: number;
+  icon: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  instructions?: string[];
+  successCriteria?: string[];
+  tips?: string[];
+  adhdBenefits?: string[];
+  skillBoosts?: SkillBoost[];
+  tags?: string[];
+}
+
+export interface SkillBoost {
+  skillId: string;
+  boost: number;
+  duration: number; // minutes
+}
+
+export interface ActiveChallenge {
+  challengeId: string;
+  startTime: Date;
+  progress: number;
+  currentStep: number;
+  timeRemaining: number;
+  isCompleted: boolean;
+  attempts: number;
+  bestScore?: number;
+}
+
+export interface HabitBoss {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  health: number;
+  maxHealth: number;
+  level: number;
+  habitType: string;
+  defeatedDate?: Date;
+  weaknesses?: string[];
+}
+
 export interface GameState {
   player: Player;
   mainQuest: MainQuest;
+  activeQuestId?: string | null; // New: ID of currently active quest
   currentSeason: Season;
   quests: Quest[];
+  repeatableActions: RepeatableAction[]; // New: Repeatable actions with counters
+  undoHistory: UndoAction[]; // New: Undo system for accidental clicks
   collectibles: Collectible[];
   healthBar: HealthBar;
   energySystem: EnergySystem; // New Energy & Mood system
@@ -209,6 +328,93 @@ export interface GameState {
   unlockedSkills: string[];
   aiChatDefaultPrompt: string;
   aiChatHistory: ChatMessage[];
+  // Character Classes & Stats for v0.2
+  currentCharacterClass?: string; // Current player's character class ID
+  playerSkills: PlayerSkill[]; // Player's skill progression
+  skillChart: SkillChart; // Current skill chart data
+  // Super Challenges & Habit Bosses for v0.2
+  activeChallenges: ActiveChallenge[]; // Currently active challenges
+  completedChallenges: string[]; // IDs of completed challenges
+  habitBosses: HabitBoss[]; // Current habit bosses
+  dailyChallenge?: string; // Today's recommended challenge ID
+  // Enhanced Tracking & Analytics for v0.2
+  journals: Journal[]; // Multi-journal system
+  streakChallenges: StreakChallenge[]; // No-sugar, no-alcohol etc challenges
+  progressAnalytics?: ProgressAnalytics; // Advanced analytics data
+}
+
+// Enhanced Tracking & Analytics for v0.2 - Multi-Journal System
+export interface JournalEntry {
+  id: string;
+  type: 'gratitude' | 'good_deeds' | 'savings' | 'ideas' | 'reflection' | 'goals';
+  title: string;
+  content: string;
+  date: Date;
+  mood?: number; // 1-10 scale
+  tags?: string[];
+  category?: string;
+  amount?: number; // For savings tracker
+  priority?: 'low' | 'medium' | 'high'; // For ideas and goals
+}
+
+export interface Journal {
+  id: string;
+  name: string;
+  type: 'gratitude' | 'good_deeds' | 'savings' | 'ideas' | 'reflection' | 'goals';
+  description: string;
+  icon: string;
+  color: string;
+  entries: JournalEntry[];
+  isActive: boolean;
+  settings: {
+    dailyReminder: boolean;
+    reminderTime?: string;
+    minEntriesPerDay?: number;
+    showStats: boolean;
+  };
+}
+
+export interface StreakChallenge {
+  id: string;
+  name: string;
+  description: string;
+  type: 'no_sugar' | 'no_alcohol' | 'no_processed_food' | 'exercise' | 'meditation' | 'custom';
+  icon: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'extreme';
+  currentStreak: number;
+  longestStreak: number;
+  startDate: Date;
+  lastCheckIn: Date;
+  isActive: boolean;
+  rewards: {
+    daysMilestone: number;
+    xpReward: number;
+    goldReward: number;
+    title: string;
+  }[];
+  dailyCheckIns: {
+    date: Date;
+    success: boolean;
+    notes?: string;
+  }[];
+}
+
+export interface ProgressAnalytics {
+  period: 'week' | 'month' | 'quarter' | 'year';
+  data: {
+    xpProgress: { date: Date; value: number }[];
+    questCompletion: { date: Date; count: number }[];
+    energyTrends: { date: Date; energy: number; mood: number }[];
+    skillProgression: { skillId: string; values: { date: Date; level: number }[] }[];
+    streakPerformance: { challengeId: string; successRate: number; avgStreak: number }[];
+  };
+  insights: {
+    strongestDay: string; // "Monday", "Tuesday", etc.
+    mostProductiveTime: string; // "morning", "afternoon", "evening"
+    topSkills: string[];
+    improvementAreas: string[];
+    recommendations: string[];
+  };
 }
 
 export interface XPSystemResult {

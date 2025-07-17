@@ -7,6 +7,8 @@ import { collectiblesReducer } from '../reducers/collectiblesReducer';
 import { generalReducer } from '../reducers/generalReducer';
 import { ALL_ACHIEVEMENTS } from '../data/achievements';
 import { DEFAULT_HEALTH_ACTIVITIES } from '../data/healthActivities';
+import { RepeatableActionsSystem } from '../utils/repeatableActions';
+import { SkillChartSystem } from '../utils/characterClasses';
 import AIChatbotDialog from '../components/AIChatbotDialog';
 import ManageHealthActivitiesDialog from '../components/ManageHealthActivitiesDialog';
 
@@ -15,10 +17,11 @@ import type { QuestAction } from '../reducers/questReducer';
 import type { HealthAction } from '../reducers/healthReducer';
 import type { CollectiblesAction } from '../reducers/collectiblesReducer';
 import type { GeneralAction } from '../reducers/generalReducer';
+import { analyticsReducer, type AnalyticsAction } from '../reducers/analyticsReducer';
 
 // Główny reducer, który deleguje akcje do mniejszych reducerów
 // Definicja wszystkich możliwych akcji w grze
-type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | { type: 'REMOVE_QUEST'; payload: string };
+type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | AnalyticsAction | { type: 'REMOVE_QUEST'; payload: string };
 
 
 const initialState: GameState = {
@@ -43,6 +46,7 @@ const initialState: GameState = {
     description: 'Complete your first quest to start building momentum',
     isActive: true
   },
+  activeQuestId: null, // New: No active quest initially
   currentSeason: {
     id: 'season_1',
     title: 'Foundation Building',
@@ -63,6 +67,7 @@ const initialState: GameState = {
       title: 'Set Up Your Workspace',
       description: 'Organize your desk and digital workspace for maximum productivity',
       type: 'main',
+      category: 'work',
       xpReward: 50,
       priority: 'high',
       status: 'active',
@@ -78,6 +83,7 @@ const initialState: GameState = {
       title: 'Daily Reflection',
       description: 'Write 3 things you accomplished today and 1 thing you learned',
       type: 'daily',
+      category: 'personal',
       xpReward: 15,
       priority: 'medium',
       status: 'active',
@@ -93,6 +99,7 @@ const initialState: GameState = {
       title: 'Tackle That Dreaded Task',
       description: 'Pick one task you\'ve been avoiding and just start it (even for 5 minutes)',
       type: 'side',
+      category: 'personal',
       xpReward: 35,
       priority: 'high',
       status: 'active',
@@ -104,6 +111,8 @@ const initialState: GameState = {
       tags: ['anxiety', 'avoidance', 'breakthrough']
     }
   ],
+  repeatableActions: [], // Will be populated with default actions
+  undoHistory: [], // New: Undo system for accidental clicks
   collectibles: [],
   healthBar: {
     current: 100,
@@ -145,6 +154,19 @@ const initialState: GameState = {
   unlockedSkills: [],
   aiChatDefaultPrompt: '',
   aiChatHistory: [],
+  // Character Classes & Stats for v0.2
+  currentCharacterClass: 'novice', // Start with Novice class
+  playerSkills: SkillChartSystem.getDefaultSkills(), // Initialize with default skills
+  skillChart: SkillChartSystem.generateSkillChart(SkillChartSystem.getDefaultSkills()), // Generate initial chart
+  // Super Challenges & Habit Bosses for v0.2
+  activeChallenges: [], // No active challenges initially
+  completedChallenges: [], // No completed challenges
+  habitBosses: [], // Will be populated with active habit bosses
+  dailyChallenge: undefined, // Will be set daily
+  
+  // Enhanced Tracking & Analytics v0.2
+  journals: [], // Multi-journal system
+  streakChallenges: [] // Streak challenges
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -173,6 +195,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       break;
     case 'ADD_COLLECTIBLE':
       updates = collectiblesReducer(state, action as CollectiblesAction);
+      break;
+    case 'ADD_JOURNAL_ENTRY':
+    case 'INITIALIZE_JOURNALS':
+    case 'ADD_STREAK_CHALLENGE':
+    case 'UPDATE_STREAK_CHALLENGE':
+      updates = analyticsReducer(state, action as AnalyticsAction);
       break;
     case 'LOAD_GAME_STATE':
     case 'UPDATE_SEASON_PROGRESS':
@@ -209,6 +237,7 @@ interface GameContextType {
     updateHealth: (change: number, activity?: HealthActivity) => void;
     updateEnergySystem: (energySystem: EnergySystem) => void; // Nowa akcja
     setMainQuest: (title: string, description: string) => void;
+    setActiveQuest: (questId: string | null) => void;
     updateSeasonProgress: (progress: number) => void;
     addCollectible: (collectible: Collectible) => void;
     updateStreak: (date?: Date) => void;
@@ -224,7 +253,6 @@ interface GameContextType {
     unlockAchievement: (achievementId: string) => void;
     unlockSkill: (skillId: string) => void;
     spendSkillPoints: (amount: number) => void;
-    setActiveQuest: (questId: string | null) => void;
     addHealth: (amount: number) => void;
     setAIChatPrompt: (prompt: string) => void;
     openAIChat: (prompt?: string) => void;
@@ -236,16 +264,25 @@ interface GameContextType {
     addGold: (amount: number, reason: string) => void;
     spendGold: (amount: number, reason: string) => void;
     claimStreakReward: (streakCount: number) => void;
+    
+    // Enhanced Tracking & Analytics v0.2
+    addJournalEntry: (journalId: string, entry: any) => void;
+    initializeJournals: () => void;
+    addStreakChallenge: (challenge: any) => void;
+    updateStreakChallenge: (challengeId: string, updates: any) => void;
   };
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 function GameProvider({ children }: { children: ReactNode }) {
-  // Create a modified initial state with default health action types
+  // Create a modified initial state with default health action types and repeatable actions
   const initialStateWithHealthActions = {
     ...initialState,
-    healthActionTypes: DEFAULT_HEALTH_ACTIVITIES
+    healthActionTypes: DEFAULT_HEALTH_ACTIVITIES,
+    repeatableActions: RepeatableActionsSystem.getDefaultRepeatableActions(),
+    journals: [],
+    streakChallenges: []
   };
   
   const [state, dispatch] = useReducer(gameReducer, initialStateWithHealthActions);
@@ -300,6 +337,8 @@ function GameProvider({ children }: { children: ReactNode }) {
         };
         parsedState.customHealthActivities = parsedState.customHealthActivities || [];
         parsedState.healthActionTypes = parsedState.healthActionTypes || [...initialStateWithHealthActions.healthActionTypes];
+        parsedState.repeatableActions = parsedState.repeatableActions || [...initialStateWithHealthActions.repeatableActions];
+        parsedState.undoHistory = parsedState.undoHistory || [];
         parsedState.unlockedAchievements = parsedState.unlockedAchievements || [];
         parsedState.unlockedSkills = parsedState.unlockedSkills || [];
         parsedState.aiChatDefaultPrompt = parsedState.aiChatDefaultPrompt || '';
@@ -388,6 +427,21 @@ function GameProvider({ children }: { children: ReactNode }) {
     addGold: (amount: number, reason: string) => dispatch({ type: 'ADD_GOLD', payload: { amount, reason } }),
     spendGold: (amount: number, reason: string) => dispatch({ type: 'SPEND_GOLD', payload: { amount, reason } }),
     claimStreakReward: (streakCount: number) => dispatch({ type: 'CLAIM_STREAK_REWARD', payload: { streakCount } }),
+    
+    // Enhanced Tracking & Analytics v0.2 actions
+    addJournalEntry: (journalId: string, entry: any) => dispatch({ 
+      type: 'ADD_JOURNAL_ENTRY', 
+      payload: { journalId, entry } 
+    }),
+    initializeJournals: () => dispatch({ type: 'INITIALIZE_JOURNALS' }),
+    addStreakChallenge: (challenge: any) => dispatch({ 
+      type: 'ADD_STREAK_CHALLENGE', 
+      payload: challenge 
+    }),
+    updateStreakChallenge: (challengeId: string, updates: any) => dispatch({ 
+      type: 'UPDATE_STREAK_CHALLENGE', 
+      payload: { challengeId, updates } 
+    }),
   };
 
   return (

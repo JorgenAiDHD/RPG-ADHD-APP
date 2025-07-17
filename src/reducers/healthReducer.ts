@@ -1,5 +1,6 @@
 import type { GameState, HealthActivity, EnergySystem } from '../types/game';
 import { XPSystem } from '../utils/xpSystem';
+import { SkillChartSystem } from '../utils/characterClasses';
 import { toast } from 'sonner';
 
 // Reducer odpowiedzialny za pasek zdrowia i system energii.
@@ -61,6 +62,12 @@ export function healthReducer(state: GameState, action: HealthAction): Partial<G
         actualXPGainedFromBonus = xpResult.actualXPGained;
       }
 
+      // Update player skills based on health activity
+      const updatedSkills = SkillChartSystem.updateSkillFromActivity(
+        state.playerSkills || SkillChartSystem.getDefaultSkills(),
+        'health_activity'
+      );
+      const updatedSkillChart = SkillChartSystem.generateSkillChart(updatedSkills);
 
       return {
         healthBar: {
@@ -79,7 +86,10 @@ export function healthReducer(state: GameState, action: HealthAction): Partial<G
           level: newLevel,
           xpToNextLevel: XPSystem.calculateXPForLevel(newLevel + 1),
           skillPoints: newSkillPoints
-        }
+        },
+        // Update skills and skill chart
+        playerSkills: updatedSkills,
+        skillChart: updatedSkillChart
       };
     }
 
