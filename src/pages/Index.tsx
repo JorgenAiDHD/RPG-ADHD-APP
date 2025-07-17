@@ -1,4 +1,4 @@
-// import AICompanion from '../components/AICompanion';
+import AICompanion from '../components/AICompanion';
 // Główna strona aplikacji, łącząca wszystkie komponenty.
 import { motion } from 'framer-motion';
 import AchievementsDialog from '../components/AchievementsDialog';
@@ -64,8 +64,11 @@ const Index = () => {
           </div>
         </div>
 
+
         {/* AI Companion */}
-        {/* AI Companion removed for ADHD-friendly UI simplification */}
+        <div className="mt-10 flex justify-center">
+          <AICompanion />
+        </div>
 
         {/* Footer */}
         <motion.div
