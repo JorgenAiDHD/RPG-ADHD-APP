@@ -1,6 +1,7 @@
 # My RPG Quest Log
 
-A gamified productivity application for ADHD users that transforms task management into an epic RPG adventure.
+git commit --allow-empty -m "Trigger redeploy"
+git push
 
 ## Features
 
