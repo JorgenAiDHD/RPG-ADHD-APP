@@ -515,6 +515,12 @@ app.post('/chat', async (req, res) => {
 });
 
 // Server status endpoint
+
+// Root endpoint for health/info
+app.get('/', (req, res) => {
+  res.status(200).send('<h2>RPG ADHD API is running 🚀</h2><p>Endpoints: /status, /chat, /gameState</p>');
+});
+
 app.get('/status', (req, res) => {
   console.log('Status endpoint called');
   res.status(200).json({
