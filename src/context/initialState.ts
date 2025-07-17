@@ -42,6 +42,16 @@ export const initialState: GameState = {
     maximum: 100,
     lastUpdated: new Date()
   },
+  energySystem: {
+    current: 80,          // Start with good energy
+    maximum: 100,
+    dailyRating: 4,       // 4/5 stars default
+    sleepHours: 7,        // Default sleep hours
+    moodLevel: 7,         // Good mood (1-10)
+    anxietyLevel: 3,      // Low anxiety (1-10)
+    stressLevel: 4,       // Moderate stress (1-10)
+    lastUpdated: new Date()
+  },
   settings: {
     soundEnabled: true,
     animationsEnabled: true,

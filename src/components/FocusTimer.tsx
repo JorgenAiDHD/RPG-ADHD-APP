@@ -14,10 +14,10 @@ const FocusTimer = () => {
   const { actions } = useGame();
   
   // Timer states
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // Default 25 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(20 * 60); // Default 20 minutes in seconds (ADHD-friendly)
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState<'focus' | 'break'>('focus');
-  const [focusDuration, setFocusDuration] = useState(25); // In minutes
+  const [focusDuration, setFocusDuration] = useState(20); // In minutes (ADHD-optimized)
   const [breakDuration, setBreakDuration] = useState(5); // In minutes
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -638,7 +638,7 @@ const FocusTimer = () => {
                       disabled={isRunning && sessionType === 'focus'}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="25 minutes" />
+                        <SelectValue placeholder="20 minutes" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="10">10 min (quick)</SelectItem>

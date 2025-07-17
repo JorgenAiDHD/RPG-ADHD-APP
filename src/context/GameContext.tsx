@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useContext, createContext, ReactNode, useState } from 'react';
-import { GameState, XPGain, Quest, HealthActivity, HealthActivityType, Collectible, Season, ActivityLog, ChatMessage } from '../types/game';
+import { GameState, XPGain, Quest, HealthActivity, HealthActivityType, Collectible, Season, ActivityLog, ChatMessage, EnergySystem } from '../types/game';
 import { playerReducer } from '../reducers/playerReducer';
 import { questReducer } from '../reducers/questReducer';
 import { healthReducer } from '../reducers/healthReducer';
@@ -110,6 +110,16 @@ const initialState: GameState = {
     maximum: 100,
     lastUpdated: new Date()
   },
+  energySystem: {
+    current: 80,
+    maximum: 100,
+    dailyRating: 4,
+    sleepHours: 7,
+    moodLevel: 7,
+    anxietyLevel: 3,
+    stressLevel: 4,
+    lastUpdated: new Date()
+  },
   settings: {
     soundEnabled: true,
     animationsEnabled: true,
@@ -158,6 +168,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       updates = questReducer(state, action as QuestAction);
       break;
     case 'UPDATE_HEALTH':
+    case 'UPDATE_ENERGY_SYSTEM': // Dodana nowa akcja
       updates = healthReducer(state, action as HealthAction);
       break;
     case 'ADD_COLLECTIBLE':
@@ -196,6 +207,7 @@ interface GameContextType {
     addQuest: (quest: Quest) => void;
     editQuest: (quest: Quest) => void;
     updateHealth: (change: number, activity?: HealthActivity) => void;
+    updateEnergySystem: (energySystem: EnergySystem) => void; // Nowa akcja
     setMainQuest: (title: string, description: string) => void;
     updateSeasonProgress: (progress: number) => void;
     addCollectible: (collectible: Collectible) => void;
@@ -342,6 +354,7 @@ function GameProvider({ children }: { children: ReactNode }) {
     addXP: (xpGain: XPGain) => dispatch({ type: 'ADD_XP', payload: xpGain }),
     addQuest: (quest: Quest) => dispatch({ type: 'ADD_QUEST', payload: quest }),
     updateHealth: (change: number, activity?: HealthActivity) => dispatch({ type: 'UPDATE_HEALTH', payload: { change, activity } }),
+    updateEnergySystem: (energySystem: EnergySystem) => dispatch({ type: 'UPDATE_ENERGY_SYSTEM', payload: energySystem }),
     setMainQuest: (title: string, description: string) => dispatch({ type: 'SET_MAIN_QUEST', payload: { title, description } }),
     updateSeasonProgress: (progress: number) => dispatch({ type: 'UPDATE_SEASON_PROGRESS', payload: progress }),
     addCollectible: (collectible: Collectible) => dispatch({ type: 'ADD_COLLECTIBLE', payload: collectible }),

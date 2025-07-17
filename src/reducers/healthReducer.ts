@@ -1,10 +1,11 @@
-import type { GameState, HealthActivity } from '../types/game';
+import type { GameState, HealthActivity, EnergySystem } from '../types/game';
 import { XPSystem } from '../utils/xpSystem';
 import { toast } from 'sonner';
 
-// Reducer odpowiedzialny za pasek zdrowia.
+// Reducer odpowiedzialny za pasek zdrowia i system energii.
 export type HealthAction =
-  | { type: 'UPDATE_HEALTH'; payload: { change: number, activity?: HealthActivity } }; // Dodano opcjonalną aktywność
+  | { type: 'UPDATE_HEALTH'; payload: { change: number, activity?: HealthActivity } }
+  | { type: 'UPDATE_ENERGY_SYSTEM'; payload: EnergySystem }; // Dodana nowa akcja
 
 export function healthReducer(state: GameState, action: HealthAction): Partial<GameState> {
   switch (action.type) {
@@ -78,6 +79,15 @@ export function healthReducer(state: GameState, action: HealthAction): Partial<G
           level: newLevel,
           xpToNextLevel: XPSystem.calculateXPForLevel(newLevel + 1),
           skillPoints: newSkillPoints
+        }
+      };
+    }
+
+    case 'UPDATE_ENERGY_SYSTEM': {
+      return {
+        energySystem: {
+          ...action.payload,
+          lastUpdated: new Date()
         }
       };
     }

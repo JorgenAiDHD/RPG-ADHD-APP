@@ -87,16 +87,32 @@ export interface HealthBar {
   lastUpdated: Date;
 }
 
+// New Energy & Mood System for v0.2
+export interface EnergySystem {
+  current: number;        // Current energy level (0-100)
+  maximum: number;        // Maximum energy (usually 100)
+  dailyRating: number;    // Daily energy rating (1-5 stars)
+  sleepHours: number;     // Hours slept last night
+  moodLevel: number;      // Current mood (1-10 scale)
+  anxietyLevel: number;   // Anxiety level (1-10 scale)
+  stressLevel: number;    // Stress level (1-10 scale)
+  lastUpdated: Date;
+}
+
+// Enhanced Health Activity with Energy impact
 export interface HealthActivityType {
   id: string;
   name: string;
   healthChangeAmount: number; // Changed from healthChange to healthChangeAmount
+  energyChangeAmount: number; // New: Energy impact
   xpChangeAmount?: number;    // Added XP change amount
   category: 'physical' | 'mental' | 'social' | 'creative';
   duration: number;
   description: string;
   icon: string;
   isPositive: boolean;       // Added to identify if action is positive or negative
+  affectsMood?: boolean;     // Whether this activity affects mood
+  reducesAnxiety?: boolean;  // Whether this reduces anxiety
 }
 
 export interface HealthActivity {
@@ -180,6 +196,7 @@ export interface GameState {
   quests: Quest[];
   collectibles: Collectible[];
   healthBar: HealthBar;
+  energySystem: EnergySystem; // New Energy & Mood system
   settings: Settings;
   statistics: Statistics;
   recentActivity: ActivityLog[];
