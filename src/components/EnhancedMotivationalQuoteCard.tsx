@@ -6,7 +6,7 @@ import { Badge } from './ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Quote, Shuffle, Heart, Star, BookOpen, ChevronLeft, ChevronRight,
-  Play, Pause, RotateCcw, Volume2, VolumeX, Brain, Lightbulb
+  Play, Pause, Volume2, VolumeX, Brain, Lightbulb
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -53,7 +53,7 @@ const expandedQuoteDatabase: MotivationalQuote[] = [
     source: 'Limitless',
     tags: ['consistency', 'progress', 'habits'],
     difficulty: 'beginner',
-    mood: 'motivating'
+    mood: 'inspiring'
   },
   {
     id: 'kwik_3',

@@ -4,8 +4,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { motion } from 'framer-motion';
-import { Palette, Save, RotateCcw, Eye, Download, Upload } from 'lucide-react';
+import { Palette, Save, RotateCcw, Eye, Download } from 'lucide-react';
 import { applyColorPalette, type ColorPalette } from '../styles/colorPalettes';
 import { toast } from 'sonner';
 

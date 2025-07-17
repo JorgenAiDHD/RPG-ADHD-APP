@@ -68,7 +68,22 @@ export const initialState: GameState = {
     averageTaskCompletionTime: 0,
     favoriteQuestTypes: [],
     collectiblesFound: 0,
-    healthActivitiesLogged: 0
+    healthActivitiesLogged: 0,
+    
+    // Enhanced Statistics for UX/UI Enhancements v0.2
+    longestFocusSession: 0, // in minutes
+    taskSwitchesInDay: 0,
+    creativeTasksThisWeek: 0,
+    quickTasksCompleted: 0, // tasks completed in <5 min
+    maxTaskCombo: 0, // consecutive tasks without breaks
+    bigTasksCompleted: 0, // major/difficult tasks
+    morningActivitiesStreak: 0,
+    movementForFocus: 0, // times exercise was used for focus
+    systemImprovements: 0, // bugs fixed/systems improved
+    automatedSystems: 0, // automated habits/systems
+    routineConsistency: 0, // days of consistent routine
+    specialInterestHours: 0, // hours on special interests
+    sensoryManagement: 0 // successful sensory environment management
   },
   recentActivity: [],
   lastSaved: new Date(),
@@ -159,5 +174,17 @@ export const initialState: GameState = {
   
   // Enhanced Tracking & Analytics v0.2
   journals: [],
-  streakChallenges: []
+  streakChallenges: [],
+
+  // v0.3 Inner Realms Expansion 🌌
+  emotionRealms: [],
+  currentRealmState: {
+    currentMood: 3,
+    currentEmotion: 'focus',
+    activeRealm: null,
+    transitionDuration: 2,
+    lastMoodUpdate: new Date()
+  },
+  realmProgress: [],
+  activeRealmEvents: []
 };
