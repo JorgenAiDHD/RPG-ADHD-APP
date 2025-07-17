@@ -14,6 +14,7 @@ const defaultQuest: Omit<Quest, 'id'> = {
   title: '',
   description: '',
   type: 'side',
+  category: 'personal',
   xpReward: 10,
   goldReward: 5, // Added default goldReward
   priority: 'medium',
@@ -129,6 +130,24 @@ const NewQuestDialog = () => {
                 <option value="weekly">Weekly Goal</option>
               </select>
             </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium mb-1">Category</label>
+              <select
+                name="category"
+                value={quest.category}
+                onChange={handleChange}
+                className="w-full border rounded px-2 py-2 text-base bg-zinc-50 dark:bg-zinc-800 border-blue-100 dark:border-zinc-700"
+              >
+                <option value="work">💼 Work</option>
+                <option value="personal">🏠 Personal</option>
+                <option value="health">💪 Health</option>
+                <option value="learning">📚 Learning</option>
+                <option value="creative">🎨 Creative</option>
+                <option value="social">👥 Social</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-4">
             <div className="flex-1">
               <label className="block text-xs font-medium mb-1">Priority</label>
               <select

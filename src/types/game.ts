@@ -50,6 +50,7 @@ export interface Quest {
   title: string;
   description: string;
   type: 'main' | 'side' | 'daily' | 'weekly';
+  category: 'work' | 'personal' | 'health' | 'learning' | 'creative' | 'social';
   xpReward: number;
   goldReward?: number; // Added goldReward property
   skillTreeCategory?: string;

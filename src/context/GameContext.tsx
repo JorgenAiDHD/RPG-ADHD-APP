@@ -277,7 +277,8 @@ function GameProvider({ children }: { children: ReactNode }) {
           ...q,
           createdDate: new Date(q.createdDate),
           completedDate: q.completedDate ? new Date(q.completedDate) : undefined,
-          deadline: q.deadline ? new Date(q.deadline) : undefined
+          deadline: q.deadline ? new Date(q.deadline) : undefined,
+          category: q.category || 'personal' // Add default category for existing quests
         }));
         parsedState.collectibles = parsedState.collectibles?.map((c: any) => ({
           ...c,
