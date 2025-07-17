@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Plus, Zap, AlertCircle, Star, ArrowLeft, ArrowRight } from 'lucide-react';
 import type { HealthActivityType } from '../types/game';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 import './HealthActions.css';
 
 const HealthActions = () => {
@@ -42,7 +43,7 @@ const HealthActions = () => {
   };
 
   const handleHealthAction = (activityType: HealthActivityType) => {
-    // Using the custom updateHealth action with the health change amount from the activity type
+    // Update Health
     actions.updateHealth(activityType.healthChangeAmount, {
       id: activityType.id,
       name: activityType.name,
@@ -52,11 +53,30 @@ const HealthActions = () => {
       description: activityType.description,
       icon: activityType.icon
     });
+
+    // Update Energy System
+    const currentEnergy = state.energySystem.current;
+    const newEnergy = Math.max(0, Math.min(100, currentEnergy + activityType.energyChangeAmount));
+    
+    actions.updateEnergySystem({
+      ...state.energySystem,
+      current: newEnergy,
+      lastUpdated: new Date()
+    });
     
     // Add XP if the activity provides it
     if (activityType.xpChangeAmount) {
       actions.addXP({ amount: activityType.xpChangeAmount, reason: `Health Activity: ${activityType.name}` });
     }
+
+    // Show enhanced toast with both health and energy changes
+    const healthText = activityType.healthChangeAmount > 0 ? `+${activityType.healthChangeAmount} Health` : `${activityType.healthChangeAmount} Health`;
+    const energyText = activityType.energyChangeAmount > 0 ? `+${activityType.energyChangeAmount} Energy` : `${activityType.energyChangeAmount} Energy`;
+    
+    toast.success(`${activityType.name} completed!`, {
+      description: `${healthText}, ${energyText}${activityType.xpChangeAmount ? `, +${activityType.xpChangeAmount} XP` : ''}`,
+      duration: 3000
+    });
   };
 
   return (
@@ -226,22 +246,24 @@ const HealthActions = () => {
                   
                   {/* Activity Effects - Better grouping and alignment */}
                   <div className="mt-auto flex flex-col items-center text-sm font-medium whitespace-nowrap gap-1">
+                    {/* Health Badge */}
                     <Badge className={`${
                       activity.healthChangeAmount > 0
                         ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/60 dark:text-emerald-100 dark:border-emerald-800/40'
-                        : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/60 dark:text-blue-100 dark:border-blue-800/40'
+                        : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/60 dark:text-red-100 dark:border-red-800/40'
                     } flex items-center gap-1 px-2.5 py-1 text-xs font-medium border rounded-full whitespace-nowrap`}>
-                      {activity.healthChangeAmount > 0 ? (
-                        <>
-                          <Heart size={12} className="text-emerald-600 dark:text-emerald-300" />
-                          +{activity.healthChangeAmount} Health
-                        </>
-                      ) : (
-                        <>
-                          <Zap size={12} className="text-blue-600 dark:text-blue-300" />
-                          {activity.healthChangeAmount} Energy
-                        </>
-                      )}
+                      <Heart size={12} className={activity.healthChangeAmount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300"} />
+                      {activity.healthChangeAmount > 0 ? '+' : ''}{activity.healthChangeAmount} Health
+                    </Badge>
+                    
+                    {/* Energy Badge */}
+                    <Badge className={`${
+                      activity.energyChangeAmount > 0
+                        ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/60 dark:text-blue-100 dark:border-blue-800/40'
+                        : 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/60 dark:text-orange-100 dark:border-orange-800/40'
+                    } flex items-center gap-1 px-2.5 py-1 text-xs font-medium border rounded-full whitespace-nowrap`}>
+                      <Zap size={12} className={activity.energyChangeAmount > 0 ? "text-blue-600 dark:text-blue-300" : "text-orange-600 dark:text-orange-300"} />
+                      {activity.energyChangeAmount > 0 ? '+' : ''}{activity.energyChangeAmount} Energy
                     </Badge>
                     
                     {activity.xpChangeAmount && activity.xpChangeAmount > 0 && (
@@ -263,11 +285,11 @@ const HealthActions = () => {
                   >
                     {activity.healthChangeAmount > 0 ? (
                       <>
-                        <Heart size={16} /> Use
+                        <Heart size={16} /> Done
                       </>
                     ) : (
                       <>
-                        <Zap size={16} /> Use
+                        <Zap size={16} /> Done
                       </>
                     )}
                   </Button>
