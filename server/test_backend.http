@@ -1,0 +1,18 @@
+### Test root endpoint
+GET http://localhost:3001/
+
+### Test status endpoint
+GET http://localhost:3001/status
+
+### Test gameState endpoint
+GET http://localhost:3001/gameState
+
+### Test chat endpoint
+POST http://localhost:3001/chat
+Content-Type: application/json
+
+{
+  "message": "Jaki jest mój status?",
+  "gameState": {},
+  "history": []
+}
