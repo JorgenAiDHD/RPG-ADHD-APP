@@ -403,27 +403,36 @@ app.post('/chat', async (req, res) => {
         tools: [{ function_declarations: functionSchemas }], // Pass the function schemas as tools
       });
 
-      // Use provided history if available, otherwise fallback to system prompt
-      let chatHistory = Array.isArray(history) && history.length > 0
-        ? history
-        : [
-            { role: "user", parts: [
-              `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
+  // Use provided history if available, otherwise fallback to system prompt
+  let chatHistory = Array.isArray(history) && history.length > 0
+    ? history.slice() // clone to avoid mutating original
+    : [
+        { role: "user", parts: [
+          `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
 
-              Zasady Działania:
+          Zasady Działania:
 
-              1. Działaj proaktywnie i minimalizuj interakcje: Jeśli Twoje narzędzia pozwalają na wykonanie prośby użytkownika (np. add_quest, log_health_activity, set_main_quest), wykonaj je natychmiast, uzupełniając brakujące parametry sensownymi wartościami domyślnymi, jeśli użytkownik ich nie podał.
-              Przykłady domyślnych wartości (dla add_quest):
-              type: daily (jeśli nie wskazano inaczej)
-              estimatedTime: 15 (jeśli nie wskazano inaczej, w minutach)
-              difficultyLevel: 2 (jeśli nie wskazano inaczej)
-              xpReward: estimatedTime (w minutach) lub 15 (jeśli czas nie jest podany)
-              energyRequired: medium (jeśli nie wskazano inaczej)
-              anxietyLevel: comfortable (jeśli nie wskazano inaczej)
-              tags: Wnioskuj na podstawie tytułu/opisu.
-              NIE pytaj o potwierdzenie po uzupełnieniu wartości. Po prostu wykonaj zadanie i poinformuj o tym użytkownika.
-              NIE pytaj o to, czy dodać jako osobne questy, jeśli użytkownik prosi o kilka rzeczy. Zawsze dodawaj jako osobne questy, chyba że kontekst jasno wskazuje na jedno złożone zadanie.` ] }
-          ];
+          1. Działaj proaktywnie i minimalizuj interakcje: Jeśli Twoje narzędzia pozwalają na wykonanie prośby użytkownika (np. add_quest, log_health_activity, set_main_quest), wykonaj je natychmiast, uzupełniając brakujące parametry sensownymi wartościami domyślnymi, jeśli użytkownik ich nie podał.
+          Przykłady domyślnych wartości (dla add_quest):
+          type: daily (jeśli nie wskazano inaczej)
+          estimatedTime: 15 (jeśli nie wskazano inaczej, w minutach)
+          difficultyLevel: 2 (jeśli nie wskazano inaczej)
+          xpReward: estimatedTime (w minutach) lub 15 (jeśli czas nie jest podany)
+          energyRequired: medium (jeśli nie wskazano inaczej)
+          anxietyLevel: comfortable (jeśli nie wskazano inaczej)
+          tags: Wnioskuj na podstawie tytułu/opisu.
+          NIE pytaj o potwierdzenie po uzupełnieniu wartości. Po prostu wykonaj zadanie i poinformuj o tym użytkownika.
+          NIE pytaj o to, czy dodać jako osobne questy, jeśli użytkownik prosi o kilka rzeczy. Zawsze dodawaj jako osobne questy, chyba że kontekst jasno wskazuje na jedno złożone zadanie.` ] }
+      ];
+
+  // Ensure first entry is always 'user' (Gemini API requirement)
+  while (chatHistory.length > 0 && chatHistory[0].role !== 'user') {
+    chatHistory.shift();
+  }
+  // If after shifting, no 'user' entry, add a default one
+  if (chatHistory.length === 0) {
+    chatHistory.push({ role: 'user', parts: [message || ''] });
+  }
 
       const chat = model.startChat({
         generationConfig: {
