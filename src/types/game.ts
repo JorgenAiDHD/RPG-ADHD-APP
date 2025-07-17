@@ -341,6 +341,12 @@ export interface GameState {
   journals: Journal[]; // Multi-journal system
   streakChallenges: StreakChallenge[]; // No-sugar, no-alcohol etc challenges
   progressAnalytics?: ProgressAnalytics; // Advanced analytics data
+  
+  // v0.3 Inner Realms Expansion 🌌
+  emotionRealms: EmotionRealm[]; // Inner realm system
+  currentRealmState: MoodEnvironmentSync; // Active mood-environment sync
+  realmProgress: RealmProgress[]; // Progress tracking per realm
+  activeRealmEvents: string[]; // Currently active realm events
 }
 
 // Enhanced Tracking & Analytics for v0.2 - Multi-Journal System
@@ -355,6 +361,87 @@ export interface JournalEntry {
   category?: string;
   amount?: number; // For savings tracker
   priority?: 'low' | 'medium' | 'high'; // For ideas and goals
+}
+
+// v0.3 Inner Realms Expansion - New Core Types 🌌
+
+export interface EmotionRealm {
+  id: string;
+  name: string;
+  emotionType: 'anxiety' | 'focus' | 'creativity' | 'calm' | 'energy' | 'motivation' | 'confidence';
+  displayName: string;
+  description: string;
+  environment: {
+    bgColor: string;
+    textColor: string;
+    accentColor: string;
+    ambientEffect: 'fog' | 'clarity' | 'sparkles' | 'rain' | 'sunshine' | 'storm' | 'aurora';
+    musicSuggestion?: string;
+  };
+  unlockConditions: {
+    streakDays?: number;
+    completedQuests?: number;
+    totalXP?: number;
+    specificAchievements?: string[];
+  };
+  isUnlocked: boolean;
+  currentIntensity: number; // 0-100
+  realmEvents: RealmEvent[];
+  narrativeFragments: NarrativeFragment[];
+}
+
+export interface RealmEvent {
+  id: string;
+  title: string;
+  description: string;
+  triggerCondition: {
+    moodRange: [number, number]; // [min, max] 1-5
+    timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+    streakDay?: number;
+    realmIntensity?: [number, number];
+  };
+  effects: {
+    environmentChange?: Partial<EmotionRealm['environment']>;
+    xpMultiplier?: number;
+    buffDuration?: number; // minutes
+    narrativeUnlock?: string;
+  };
+  isActive: boolean;
+  lastTriggered?: Date;
+}
+
+export interface NarrativeFragment {
+  id: string;
+  title: string;
+  content: string;
+  unlockCondition: {
+    moodTrend: 'improving' | 'stable' | 'declining';
+    realmVisits: number;
+    journalEntries?: number;
+    consecutiveDays?: number;
+  };
+  isUnlocked: boolean;
+  unlockedAt?: Date;
+  category: 'discovery' | 'wisdom' | 'challenge' | 'triumph' | 'reflection';
+}
+
+export interface MoodEnvironmentSync {
+  currentMood: number; // 1-5 scale
+  currentEmotion: EmotionRealm['emotionType'];
+  activeRealm: string | null;
+  environmentOverride?: Partial<EmotionRealm['environment']>;
+  transitionDuration: number; // seconds for theme transition
+  lastMoodUpdate: Date;
+}
+
+export interface RealmProgress {
+  realmId: string;
+  visitCount: number;
+  totalTimeSpent: number; // minutes
+  eventsTriggered: string[];
+  narrativesUnlocked: string[];
+  masteryLevel: number; // 0-100
+  lastVisited: Date;
 }
 
 export interface Journal {

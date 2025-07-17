@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { motion } from 'framer-motion';
-import { Clock, Star, Edit3, CheckCircle, Coins } from 'lucide-react';
+import { Clock, Star, Edit3, CheckCircle, Coins, Plus } from 'lucide-react';
+import NewQuestDialog from './NewQuestDialog';
 import type { ChangeEvent } from 'react';
 import type { Quest } from '../types/game';
 
@@ -52,17 +53,17 @@ const calculateGoldReward = (quest: Quest): number => {
   return finalReward;
 };
 
-// Funkcja do kolorowego kodowania kategorii questów
+// Funkcja do kolorowego kodowania kategorii questów z systemem ADHD
 const getCategoryColor = (category: string) => {
   const categoryColors = {
-    'work': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700',
-    'personal': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
-    'health': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
-    'learning': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700',
-    'creative': 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700',
-    'social': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700'
+    'work': 'bg-primary-100 text-primary-700 border-primary-200 dark:bg-primary-700/20 dark:text-primary-300 dark:border-primary-600/50',
+    'personal': 'bg-success-100 text-success-700 border-success-200 dark:bg-success-700/20 dark:text-success-300 dark:border-success-600/50',
+    'health': 'bg-error-100 text-error-700 border-error-200 dark:bg-error-700/20 dark:text-error-300 dark:border-error-600/50',
+    'learning': 'bg-secondary-100 text-secondary-700 border-secondary-200 dark:bg-secondary-700/20 dark:text-secondary-300 dark:border-secondary-600/50',
+    'creative': 'bg-adhd-creative-100 text-adhd-creative-700 border-adhd-creative-200 dark:bg-adhd-creative-700/20 dark:text-adhd-creative-300 dark:border-adhd-creative-600/50',
+    'social': 'bg-adhd-energy-100 text-adhd-energy-700 border-adhd-energy-200 dark:bg-adhd-energy-700/20 dark:text-adhd-energy-300 dark:border-adhd-energy-600/50'
   };
-  return categoryColors[category as keyof typeof categoryColors] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700';
+  return categoryColors[category as keyof typeof categoryColors] || 'bg-surface-100 text-surface-700 border-surface-200 dark:bg-surface-700/20 dark:text-surface-300 dark:border-surface-600/50';
 };
 
 // Funkcja do ikony kategorii
@@ -113,40 +114,66 @@ const QuestList = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-      <Card className="p-4 sm:p-6 relative overflow-hidden bg-white dark:bg-gradient-to-br dark:from-blue-900/60 dark:to-zinc-900 border border-gray-200 dark:border-blue-800 text-gray-900 dark:text-white shadow-xl dark:shadow-blue-900/30 rounded-2xl sm:rounded-3xl">
-        {/* Subtle background pattern for visual interest */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDgxQ0IiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjItMS44LTQtNC00cy00IDEuOC00IDQgMS44IDQgNCA0IDQtMS44IDQtNHptMC0xOGMwLTIuMi0xLjgtNC00LTRzLTQgMS44LTQgNCAxLjggNCA0IDQgNC0xLjggNC00em0wIDM2YzAtMi4yLTEuOC00LTQtNHMtNCAxLjgtNCA0IDEuOCA0IDQgNCA0LTEuOCA0LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')]"></div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200 dark:border-blue-800/40 relative z-10">
-          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-0">
-            <div className="p-2 sm:p-2.5 bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-800/80 dark:to-indigo-900/80 rounded-full shadow-md border border-blue-200 dark:border-blue-700/30">
-              <CheckCircle size={22} className="text-blue-600 dark:text-blue-300" strokeWidth={2.5} />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-blue-800 dark:bg-gradient-to-r dark:from-blue-300 dark:to-cyan-200 dark:bg-clip-text dark:text-transparent">
-              Active Quests
-            </h2>
-          </div>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-full text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 flex items-center gap-1 sm:gap-2 shadow-md border border-blue-500/50 transition-all hover:shadow-blue-500/20"
-            onClick={() => window.document.getElementById('add-quest-button')?.click()}
-          >
-            <span className="text-lg font-bold">+</span> New Quest
-          </Button>
+      <Card className="card-primary">
+        {/* Enhanced Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-5">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDgxQ0IiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJtMzYgMThjMC0yLjItMS44LTQtNC00cy00IDEuOC00IDQgMS44IDQgNCA0IDQtMS44IDQtNHptMC0xOGMwLTIuMi0xLjgtNC00LTRzLTQgMS44LTQgNCAxLjggNCA0IDQgNC0xLjggNC00em0wIDM2YzAtMi4yLTEuOC00LTQtNHMtNCAxLjgtNCA0IDEuOCA0IDQgNCA0LTEuOCA0LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')]"></div>
         </div>
 
-        {/* Empty state with clear call to action */}
-        {activeQuests.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-gray-50 dark:bg-blue-900/10 rounded-2xl border border-dashed border-gray-300 dark:border-blue-800/40">
-            <CheckCircle size={48} className="text-gray-400 dark:text-blue-400/50 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">No quests available</h3>
-            <p className="text-gray-600 dark:text-gray-400 max-w-md mb-6">Start by creating your first quest to track your progress and earn rewards</p>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-full px-6 py-3 flex items-center gap-2 shadow-md border border-blue-500/50 transition-all hover:shadow-blue-500/20"
-              onClick={() => window.document.getElementById('add-quest-button')?.click()}
-            >
-              <span className="text-lg font-bold">+</span> Create First Quest
-            </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-primary-200 dark:border-primary-700/60 relative z-10">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-0">
+            <div className="icon-container-primary">
+              <CheckCircle size={24} className="text-white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-gradient-primary">
+                Quest Journal
+              </h2>
+              <p className="text-sm text-surface-600 dark:text-surface-400 mt-1">
+                {activeQuests.length} active quest{activeQuests.length !== 1 ? 's' : ''} awaiting completion
+              </p>
+            </div>
           </div>
+          <NewQuestDialog />
+        </div>
+
+        {/* Enhanced Empty State */}
+        {activeQuests.length === 0 && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center justify-center py-16 px-4 text-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800/50 dark:to-blue-900/20 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600/50 relative overflow-hidden"
+          >
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute top-4 left-4 w-8 h-8 bg-blue-500 rounded-full animate-pulse"></div>
+              <div className="absolute top-12 right-8 w-4 h-4 bg-cyan-500 rounded-full animate-pulse delay-300"></div>
+              <div className="absolute bottom-8 left-12 w-6 h-6 bg-purple-500 rounded-full animate-pulse delay-700"></div>
+            </div>
+            
+            <div className="relative z-10">
+              <CheckCircle size={64} className="text-slate-400 dark:text-slate-500 mx-auto mb-6 animate-bounce" />
+              <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-3">Ready for Adventure?</h3>
+              <p className="text-slate-600 dark:text-slate-400 max-w-md mb-8 leading-relaxed">
+                Your quest journal is empty and waiting for epic adventures. Create your first quest to begin your journey!
+              </p>
+              <div className="space-y-4">
+                <Button 
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-xl px-8 py-4 flex items-center gap-3 shadow-xl border border-blue-500/50 transition-all hover:shadow-blue-500/30 hover:scale-105 mx-auto"
+                  onClick={() => {
+                    const newQuestBtn = document.querySelector('[data-new-quest-trigger]') as HTMLButtonElement;
+                    if (newQuestBtn) newQuestBtn.click();
+                  }}
+                >
+                  <Plus size={20} />
+                  Create Your First Quest
+                </Button>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  💡 Tip: Start with a simple daily task to get familiar with the system
+                </p>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {/* Quest List with improved spacing and readability - responsive height */}

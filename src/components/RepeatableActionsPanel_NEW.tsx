@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RotateCcw, Calendar, Trophy, Plus, Sunrise, Target, 
-  CheckCircle, RefreshCw, Trash2, Star, Zap, 
-  Flame, Coffee, Book
+  CheckCircle, RefreshCw, Settings, Trash2, Edit3,
+  Clock, Star, Zap, Fire, Coffee, Book
 } from 'lucide-react';
 import { RepeatableActionsSystem, type RepeatableAction } from '../utils/repeatableActions';
 import { toast } from 'sonner';
@@ -20,9 +20,8 @@ const CATEGORY_ICONS = {
   health: { icon: Zap, color: 'emerald', bg: 'from-emerald-500 to-green-600' },
   work: { icon: Target, color: 'blue', bg: 'from-blue-500 to-cyan-600' },
   learning: { icon: Book, color: 'purple', bg: 'from-purple-500 to-indigo-600' },
-  personal: { icon: Flame, color: 'orange', bg: 'from-orange-500 to-red-600' },
+  habit: { icon: Fire, color: 'orange', bg: 'from-orange-500 to-red-600' },
   social: { icon: Coffee, color: 'pink', bg: 'from-pink-500 to-rose-600' },
-  creative: { icon: Star, color: 'yellow', bg: 'from-yellow-500 to-amber-600' },
   default: { icon: CheckCircle, color: 'gray', bg: 'from-gray-500 to-slate-600' }
 };
 
@@ -33,13 +32,11 @@ const RepeatableActionsPanel = () => {
   const [newAction, setNewAction] = useState({
     title: '',
     description: '',
-    category: 'personal' as RepeatableAction['category'],
+    category: 'habit',
+    frequency: 'daily' as const,
     targetCount: 1,
     xpPerCompletion: 10,
-    goldPerCompletion: 5,
-    isDaily: true,
-    isWeekly: false,
-    icon: '🎯'
+    goldPerCompletion: 5
   });
 
   const handleCompleteAction = (actionId: string) => {
@@ -57,12 +54,17 @@ const RepeatableActionsPanel = () => {
     // Increment the action
     const updatedAction = RepeatableActionsSystem.incrementAction(action);
     
-    // Update state - for now just show toast since we need to add the action to GameContext
-    // TODO: Add updateRepeatableAction to GameContext
+    // Update the state with the new action data
+    actions.updateRepeatableAction(updatedAction);
     
-    // Add XP
+    // Add XP and Gold
     actions.addXP({
       amount: action.xpPerCompletion,
+      reason: action.title
+    });
+    
+    actions.addGold({
+      amount: action.goldPerCompletion,
       reason: action.title
     });
 
@@ -89,8 +91,8 @@ const RepeatableActionsPanel = () => {
     const action = repeatableActions.find(a => a.id === actionId);
     if (!action) return;
 
-    RepeatableActionsSystem.resetAction(action);
-    // TODO: Update in GameContext
+    const resetAction = RepeatableActionsSystem.resetAction(action);
+    actions.updateRepeatableAction(resetAction);
     
     toast.info(`🔄 ${action.title} reset`, {
       description: 'Ready for a fresh start!'
@@ -105,31 +107,28 @@ const RepeatableActionsPanel = () => {
 
     const action: RepeatableAction = {
       id: crypto.randomUUID(),
-      questId: '', // Not linked to specific quest
       ...newAction,
       currentCount: 0,
-      lastCompletedDate: new Date(),
-      resetDate: new Date()
+      completedDates: [],
+      streak: 0,
+      lastCompleted: null,
+      createdAt: new Date()
     };
 
-    // TODO: Add addRepeatableAction to GameContext
-    // actions.addRepeatableAction(action);
-    
+    actions.addRepeatableAction(action);
     setNewAction({
       title: '',
       description: '',
-      category: 'personal' as RepeatableAction['category'],
+      category: 'habit',
+      frequency: 'daily' as const,
       targetCount: 1,
       xpPerCompletion: 10,
-      goldPerCompletion: 5,
-      isDaily: true,
-      isWeekly: false,
-      icon: '🎯'
+      goldPerCompletion: 5
     });
     setShowAddDialog(false);
     
-    toast.success(`🌟 ${action.title} would be added!`, {
-      description: 'Feature coming soon - GameContext integration needed'
+    toast.success(`🌟 ${action.title} added!`, {
+      description: 'Start building your streak!'
     });
   };
 
@@ -137,27 +136,20 @@ const RepeatableActionsPanel = () => {
     const action = repeatableActions.find(a => a.id === actionId);
     if (!action) return;
     
-    // TODO: Add removeRepeatableAction to GameContext
-    // actions.removeRepeatableAction(actionId);
-    toast.info(`🗑️ ${action.title} would be removed`, {
-      description: 'Feature coming soon'
-    });
+    actions.removeRepeatableAction(actionId);
+    toast.info(`🗑️ ${action.title} removed`);
   };
 
   const getProgressPercentage = (action: RepeatableAction) => {
     return Math.min((action.currentCount / action.targetCount) * 100, 100);
   };
 
-  const getFrequencyIcon = (action: RepeatableAction) => {
-    if (action.isDaily) return Sunrise;
-    if (action.isWeekly) return Calendar;
-    return RotateCcw;
-  };
-
-  const getFrequencyText = (action: RepeatableAction) => {
-    if (action.isDaily) return 'Daily';
-    if (action.isWeekly) return 'Weekly';
-    return 'Custom';
+  const getFrequencyIcon = (frequency: string) => {
+    switch (frequency) {
+      case 'daily': return Sunrise;
+      case 'weekly': return Calendar;
+      default: return RotateCcw;
+    }
   };
 
   return (
@@ -166,22 +158,22 @@ const RepeatableActionsPanel = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="overflow-hidden card-elevated bg-gradient-to-br from-blue-50 via-purple-50/30 to-cyan-50/20 dark:from-neutral-900 dark:via-blue-900/20 dark:to-purple-900/10 border-2 border-primary-200 dark:border-primary-800/50 shadow-2xl rounded-2xl">
+      <Card className="overflow-hidden bg-gradient-to-br from-white via-orange-50/30 to-yellow-50/20 dark:from-gray-900 dark:via-orange-900/20 dark:to-yellow-900/10 border-2 border-orange-100 dark:border-orange-800/50 shadow-2xl rounded-2xl">
         {/* Enhanced Header */}
         <CardHeader className="pb-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="p-3 bg-gradient-to-br from-primary-500 to-secondary-600 rounded-2xl shadow-lg">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
                   <Sunrise size={28} className="text-white" />
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full animate-pulse"></div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
               </div>
               <div>
-                <CardTitle className="text-2xl font-bold text-gradient-primary">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                   🌅 Daily Actions
                 </CardTitle>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Build lasting habits with consistent daily actions
                 </p>
               </div>
@@ -190,14 +182,14 @@ const RepeatableActionsPanel = () => {
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>
                 <Button 
-                  className="btn-primary shadow-lg flex items-center gap-2"
+                  className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white rounded-xl px-6 shadow-lg flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Add Action
                 </Button>
               </DialogTrigger>
               
-              <DialogContent className="max-w-md card-elevated bg-gradient-to-br from-white to-blue-50 dark:from-neutral-900 dark:to-blue-900/20 border-2 border-primary-200 dark:border-primary-800">
+              <DialogContent className="max-w-md bg-gradient-to-br from-white to-orange-50 dark:from-gray-900 dark:to-orange-900/20 border-2 border-orange-200 dark:border-orange-800">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
                     <Plus size={24} />
@@ -238,15 +230,14 @@ const RepeatableActionsPanel = () => {
                       </label>
                       <select
                         value={newAction.category}
-                        onChange={(e) => setNewAction({ ...newAction, category: e.target.value as RepeatableAction['category'] })}
+                        onChange={(e) => setNewAction({ ...newAction, category: e.target.value })}
                         className="w-full px-4 py-3 border border-orange-200 dark:border-orange-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
                       >
                         <option value="health">Health</option>
                         <option value="work">Work</option>
                         <option value="learning">Learning</option>
-                        <option value="personal">Personal</option>
+                        <option value="habit">Habit</option>
                         <option value="social">Social</option>
-                        <option value="creative">Creative</option>
                       </select>
                     </div>
                     
@@ -349,7 +340,7 @@ const RepeatableActionsPanel = () => {
                   const IconComponent = categoryConfig.icon;
                   const progressPercentage = getProgressPercentage(action);
                   const isCompleted = RepeatableActionsSystem.isCompleted(action);
-                  const FrequencyIcon = getFrequencyIcon(action);
+                  const FrequencyIcon = getFrequencyIcon(action.frequency);
                   
                   return (
                     <motion.div
@@ -386,9 +377,11 @@ const RepeatableActionsPanel = () => {
                         
                         <div className="flex items-center gap-1">
                           <FrequencyIcon size={14} className="text-gray-400" />
-                          <Badge className="bg-orange-100 text-orange-800 border-orange-300 text-xs px-1.5 py-0.5">
-                            {getFrequencyText(action)}
-                          </Badge>
+                          {action.streak > 0 && (
+                            <Badge className="bg-orange-100 text-orange-800 border-orange-300 text-xs px-1.5 py-0.5">
+                              🔥{action.streak}
+                            </Badge>
+                          )}
                         </div>
                       </div>
 

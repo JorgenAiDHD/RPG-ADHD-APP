@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useContext, createContext, ReactNode, useState } from 'react';
-import { GameState, XPGain, Quest, HealthActivity, HealthActivityType, Collectible, Season, ActivityLog, ChatMessage, EnergySystem } from '../types/game';
+import { GameState, XPGain, Quest, HealthActivity, HealthActivityType, Collectible, Season, ActivityLog, ChatMessage, EnergySystem, EmotionRealm } from '../types/game';
 import { playerReducer } from '../reducers/playerReducer';
 import { questReducer } from '../reducers/questReducer';
 import { healthReducer } from '../reducers/healthReducer';
@@ -9,6 +9,8 @@ import { ALL_ACHIEVEMENTS } from '../data/achievements';
 import { DEFAULT_HEALTH_ACTIVITIES } from '../data/healthActivities';
 import { RepeatableActionsSystem } from '../utils/repeatableActions';
 import { SkillChartSystem } from '../utils/characterClasses';
+import { InnerRealmSystem } from '../utils/innerRealmSystem';
+import { MoodEnvironmentEngine } from '../utils/moodEnvironmentEngine';
 import AIChatbotDialog from '../components/AIChatbotDialog';
 import ManageHealthActivitiesDialog from '../components/ManageHealthActivitiesDialog';
 
@@ -21,7 +23,14 @@ import { analyticsReducer, type AnalyticsAction } from '../reducers/analyticsRed
 
 // Główny reducer, który deleguje akcje do mniejszych reducerów
 // Definicja wszystkich możliwych akcji w grze
-type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | AnalyticsAction | { type: 'REMOVE_QUEST'; payload: string };
+type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | AnalyticsAction | 
+  { type: 'REMOVE_QUEST'; payload: string } |
+  // v0.3 Inner Realms Actions
+  { type: 'UPDATE_MOOD_ENVIRONMENT'; payload: { mood: number; emotion: EmotionRealm['emotionType'] } } |
+  { type: 'SELECT_REALM'; payload: string } |
+  { type: 'UPDATE_REALM_INTENSITY'; payload: { realmId: string; activity: string; duration?: number } } |
+  { type: 'TRIGGER_REALM_EVENT'; payload: { realmId: string; eventId: string } } |
+  { type: 'UNLOCK_NARRATIVE'; payload: { realmId: string; narrativeId: string } };
 
 
 const initialState: GameState = {
@@ -145,7 +154,21 @@ const initialState: GameState = {
     averageTaskCompletionTime: 0,
     favoriteQuestTypes: [],
     collectiblesFound: 0,
-    healthActivitiesLogged: 0
+    healthActivitiesLogged: 0,
+    // Enhanced Statistics for UX/UI Enhancements v0.2
+    longestFocusSession: 0,
+    taskSwitchesInDay: 0,
+    creativeTasksThisWeek: 0,
+    quickTasksCompleted: 0,
+    maxTaskCombo: 0,
+    bigTasksCompleted: 0,
+    morningActivitiesStreak: 0,
+    movementForFocus: 0,
+    systemImprovements: 0,
+    automatedSystems: 0,
+    routineConsistency: 0,
+    specialInterestHours: 0,
+    sensoryManagement: 0
   },
   recentActivity: [],
   lastSaved: new Date(),
@@ -166,7 +189,19 @@ const initialState: GameState = {
   
   // Enhanced Tracking & Analytics v0.2
   journals: [], // Multi-journal system
-  streakChallenges: [] // Streak challenges
+  streakChallenges: [], // Streak challenges
+  
+  // v0.3 Inner Realms Expansion - Emotion-to-RPG World System 🌌
+  emotionRealms: InnerRealmSystem.getDefaultRealms(), // Initialize with default realms
+  currentRealmState: {
+    currentMood: 3,
+    currentEmotion: 'calm',
+    activeRealm: null,
+    transitionDuration: 0,
+    lastMoodUpdate: new Date()
+  }, // Default neutral mood state
+  realmProgress: [], // Empty array of RealmProgress objects
+  activeRealmEvents: [] // No active realm events initially
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -216,6 +251,109 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'CLEAR_CHAT_HISTORY':
       updates = generalReducer(state, action as GeneralAction);
       break;
+    
+    // v0.3 Inner Realms Actions
+    case 'UPDATE_MOOD_ENVIRONMENT':
+      updates = {
+        currentRealmState: InnerRealmSystem.generateMoodEnvironmentSync(
+          action.payload.mood,
+          action.payload.emotion,
+          state.emotionRealms
+        )
+      };
+      break;
+      
+    case 'SELECT_REALM':
+      const selectedRealm = state.emotionRealms.find(realm => realm.id === action.payload);
+      if (selectedRealm) {
+        // Update realm intensity and progress
+        const updatedRealms = state.emotionRealms.map(realm => 
+          realm.id === action.payload 
+            ? { ...realm, currentIntensity: InnerRealmSystem.updateRealmIntensity(realm, 'visit') }
+            : realm
+        );
+        
+        // Update or create realm progress
+        const existingProgress = state.realmProgress.find(p => p.realmId === action.payload);
+        const updatedProgress = existingProgress 
+          ? state.realmProgress.map(p => 
+              p.realmId === action.payload 
+                ? { ...p, visitCount: p.visitCount + 1, lastVisited: new Date() }
+                : p
+            )
+          : [...state.realmProgress, {
+              realmId: action.payload,
+              visitCount: 1,
+              totalTimeSpent: 0,
+              eventsTriggered: [],
+              narrativesUnlocked: [],
+              masteryLevel: 5,
+              lastVisited: new Date()
+            }];
+        
+        updates = {
+          emotionRealms: updatedRealms,
+          realmProgress: updatedProgress,
+          currentRealmState: {
+            ...state.currentRealmState,
+            activeRealm: action.payload
+          }
+        };
+      }
+      break;
+      
+    case 'UPDATE_REALM_INTENSITY':
+      updates = {
+        emotionRealms: state.emotionRealms.map(realm => 
+          realm.id === action.payload.realmId
+            ? { 
+                ...realm, 
+                currentIntensity: InnerRealmSystem.updateRealmIntensity(
+                  realm, 
+                  action.payload.activity as any,
+                  action.payload.duration
+                ) 
+              }
+            : realm
+        )
+      };
+      break;
+      
+    case 'TRIGGER_REALM_EVENT':
+      updates = {
+        emotionRealms: state.emotionRealms.map(realm => 
+          realm.id === action.payload.realmId
+            ? {
+                ...realm,
+                realmEvents: realm.realmEvents.map(event =>
+                  event.id === action.payload.eventId
+                    ? { ...event, isActive: true }
+                    : event
+                )
+              }
+            : realm
+        ),
+        activeRealmEvents: [...state.activeRealmEvents, action.payload.eventId]
+      };
+      break;
+      
+    case 'UNLOCK_NARRATIVE':
+      updates = {
+        emotionRealms: state.emotionRealms.map(realm => 
+          realm.id === action.payload.realmId
+            ? {
+                ...realm,
+                narrativeFragments: realm.narrativeFragments.map(fragment =>
+                  fragment.id === action.payload.narrativeId
+                    ? { ...fragment, isUnlocked: true }
+                    : fragment
+                )
+              }
+            : realm
+        )
+      };
+      break;
+      
     default:
       return state;
   }
@@ -270,6 +408,13 @@ interface GameContextType {
     initializeJournals: () => void;
     addStreakChallenge: (challenge: any) => void;
     updateStreakChallenge: (challengeId: string, updates: any) => void;
+    
+    // v0.3 Inner Realms Expansion Actions 🌌
+    updateMoodEnvironment: (mood: number, emotion: EmotionRealm['emotionType']) => void;
+    selectRealm: (realmId: string) => void;
+    updateRealmIntensity: (realmId: string, activity: string, duration?: number) => void;
+    triggerRealmEvent: (realmId: string, eventId: string) => void;
+    unlockNarrative: (realmId: string, narrativeId: string) => void;
   };
 }
 
@@ -295,6 +440,14 @@ function GameProvider({ children }: { children: ReactNode }) {
     const now = new Date();
     console.log(`Initializing streak with current date: ${now.toISOString()}`);
     dispatch({ type: 'UPDATE_STREAK', payload: { date: now } });
+  }, []);
+
+  // Initialize color palette on app start
+  useEffect(() => {
+    import('../styles/colorPalettes').then(({ getSavedPalette, applyColorPalette }) => {
+      const savedPalette = getSavedPalette();
+      applyColorPalette(savedPalette);
+    });
   }, []);
 
   useEffect(() => {
@@ -367,6 +520,11 @@ function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('gameState', JSON.stringify(state));
   }, [state]);
+
+  // v0.3 Inner Realms - Initialize MoodEnvironmentEngine
+  useEffect(() => {
+    MoodEnvironmentEngine.initialize(state.emotionRealms);
+  }, [state.emotionRealms]);
 
   useEffect(() => {
     ALL_ACHIEVEMENTS.forEach((achievement) => {
@@ -442,6 +600,34 @@ function GameProvider({ children }: { children: ReactNode }) {
       type: 'UPDATE_STREAK_CHALLENGE', 
       payload: { challengeId, updates } 
     }),
+    
+    // v0.3 Inner Realms Expansion Actions 🌌
+    updateMoodEnvironment: (mood: number, emotion: EmotionRealm['emotionType']) => {
+      dispatch({ type: 'UPDATE_MOOD_ENVIRONMENT', payload: { mood, emotion } });
+      // Apply environment changes via MoodEnvironmentEngine
+      MoodEnvironmentEngine.applyMoodEnvironment(mood, emotion, state.emotionRealms, true);
+    },
+    selectRealm: (realmId: string) => dispatch({ type: 'SELECT_REALM', payload: realmId }),
+    updateRealmIntensity: (realmId: string, activity: string, duration?: number) => 
+      dispatch({ type: 'UPDATE_REALM_INTENSITY', payload: { realmId, activity, duration } }),
+    triggerRealmEvent: (realmId: string, eventId: string) => 
+      dispatch({ type: 'TRIGGER_REALM_EVENT', payload: { realmId, eventId } }),
+    unlockNarrative: (realmId: string, narrativeId: string) => 
+      dispatch({ type: 'UNLOCK_NARRATIVE', payload: { realmId, narrativeId } }),
+    
+    // Repeatable Actions methods
+    updateRepeatableAction: (actionId: string, updates: any) => {
+      console.log('updateRepeatableAction called:', actionId, updates);
+      // For now, just log - implement full functionality later
+    },
+    addRepeatableAction: (action: any) => {
+      console.log('addRepeatableAction called:', action);
+      // For now, just log - implement full functionality later
+    },
+    removeRepeatableAction: (actionId: string) => {
+      console.log('removeRepeatableAction called:', actionId);
+      // For now, just log - implement full functionality later
+    }
   };
 
   return (

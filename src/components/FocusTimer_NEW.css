@@ -1,0 +1,353 @@
+/* Enhanced Focus Timer Styles - ADHD Optimized */
+
+/* Custom Range Slider for Time Adjustment - Enhanced Visibility */
+.focus-slider-blue {
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  outline: none;
+  height: 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.focus-slider-blue::-webkit-slider-thumb {
+  appearance: none;
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #60a5fa, #a78bfa);
+  cursor: pointer;
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.8),
+    0 6px 12px rgba(59, 130, 246, 0.4);
+  border: 3px solid white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.focus-slider-blue::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 
+    0 0 0 6px rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(59, 130, 246, 0.6);
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+}
+
+.focus-slider-blue::-webkit-slider-thumb:active {
+  transform: scale(1.25);
+  box-shadow: 
+    0 0 0 8px rgba(59, 130, 246, 0.2),
+    0 10px 20px rgba(59, 130, 246, 0.7);
+}
+
+.focus-slider-blue::-moz-range-thumb {
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #60a5fa, #a78bfa);
+  cursor: pointer;
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.8),
+    0 6px 12px rgba(59, 130, 246, 0.4);
+  border: 3px solid white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-slider-blue::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 
+    0 0 0 6px rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(59, 130, 246, 0.6);
+}
+
+.focus-slider-green {
+  background: linear-gradient(to right, #10b981, #14b8a6);
+  outline: none;
+  height: 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.focus-slider-green::-webkit-slider-thumb {
+  appearance: none;
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #34d399, #5eead4);
+  cursor: pointer;
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.8),
+    0 6px 12px rgba(16, 185, 129, 0.4);
+  border: 3px solid white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-slider-green::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 
+    0 0 0 6px rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(16, 185, 129, 0.6);
+  background: linear-gradient(45deg, #10b981, #14b8a6);
+}
+
+.focus-slider-green::-webkit-slider-thumb:active {
+  transform: scale(1.25);
+  box-shadow: 
+    0 0 0 8px rgba(16, 185, 129, 0.2),
+    0 10px 20px rgba(16, 185, 129, 0.7);
+}
+
+.focus-slider-green::-moz-range-thumb {
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #34d399, #5eead4);
+  cursor: pointer;
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.8),
+    0 6px 12px rgba(16, 185, 129, 0.4);
+  border: 3px solid white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-slider-green::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 
+    0 0 0 6px rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(16, 185, 129, 0.6);
+}
+
+/* Enhanced Track Styling */
+.focus-slider-blue::-webkit-slider-track {
+  height: 8px;
+  border-radius: 12px;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  border: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.focus-slider-green::-webkit-slider-track {
+  height: 8px;
+  border-radius: 12px;
+  background: linear-gradient(to right, #10b981, #14b8a6);
+  border: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.focus-slider-blue::-moz-range-track {
+  height: 8px;
+  border-radius: 12px;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  border: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.focus-slider-green::-moz-range-track {
+  height: 8px;
+  border-radius: 12px;
+  background: linear-gradient(to right, #10b981, #14b8a6);
+  border: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Slider Container Enhancement */
+.slider-container {
+  position: relative;
+  padding: 12px 0;
+}
+
+.slider-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+  transform: translateY(-50%);
+  z-index: -1;
+}
+
+/* Value Display on Slider */
+.slider-value-display {
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.focus-slider-blue:hover + .slider-value-display,
+.focus-slider-green:hover + .slider-value-display {
+  opacity: 1;
+}
+
+/* Pulse animation for timer state */
+@keyframes timer-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.timer-running {
+  animation: timer-pulse 2s ease-in-out infinite;
+}
+
+/* Progress bar animations */
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
+.progress-animated {
+  animation: progress-fill 1s ease-out;
+}
+
+/* Session transition effects */
+@keyframes session-change {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.05) rotate(1deg);
+  }
+  75% {
+    transform: scale(1.05) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.session-changing {
+  animation: session-change 0.8s ease-in-out;
+}
+
+/* Enhanced Glow effects for active states */
+.timer-glow-blue {
+  box-shadow: 
+    0 0 30px rgba(59, 130, 246, 0.4),
+    0 0 60px rgba(59, 130, 246, 0.2),
+    0 0 90px rgba(59, 130, 246, 0.1);
+}
+
+.timer-glow-green {
+  box-shadow: 
+    0 0 30px rgba(16, 185, 129, 0.4),
+    0 0 60px rgba(16, 185, 129, 0.2),
+    0 0 90px rgba(16, 185, 129, 0.1);
+}
+
+/* Button hover effects - ADHD friendly */
+.timer-button-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timer-button-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.timer-button-hover:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Time display effects - Better readability */
+.time-display {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+}
+
+/* Enhanced Mobile responsive slider adjustments */
+@media (max-width: 768px) {
+  .focus-slider-blue::-webkit-slider-thumb,
+  .focus-slider-green::-webkit-slider-thumb {
+    height: 32px;
+    width: 32px;
+  }
+  
+  .focus-slider-blue::-moz-range-thumb,
+  .focus-slider-green::-moz-range-thumb {
+    height: 32px;
+    width: 32px;
+  }
+  
+  .focus-slider-blue,
+  .focus-slider-green {
+    height: 10px;
+  }
+}
+
+/* Better Accessibility improvements */
+.focus-slider-blue:focus,
+.focus-slider-green:focus {
+  outline: 3px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 3px;
+}
+
+.focus-slider-blue:focus::-webkit-slider-thumb,
+.focus-slider-green:focus::-webkit-slider-thumb {
+  box-shadow: 
+    0 0 0 6px rgba(255, 255, 255, 1),
+    0 0 0 10px rgba(59, 130, 246, 0.3),
+    0 8px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* Enhanced Custom scrollbar for time editor */
+.time-editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+.time-editor::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.time-editor::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.time-editor::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Minute indicators on slider track */
+.slider-container::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 8px,
+    rgba(255, 255, 255, 0.2) 8px,
+    rgba(255, 255, 255, 0.2) 10px
+  );
+  transform: translateY(-50%);
+  z-index: -2;
+}

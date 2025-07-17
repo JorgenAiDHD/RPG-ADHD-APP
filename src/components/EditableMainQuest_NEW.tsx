@@ -5,12 +5,12 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Progress } from './ui/progress';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Edit, Save, Target, Crown, Calendar, Clock, 
-  Star, Trophy, ChevronRight, Settings,
-  Play, Pause, CheckCircle, AlertCircle,
-  TrendingUp
+  Star, Trophy, Sparkles, ChevronRight, Settings,
+  Play, Pause, RotateCcw, CheckCircle, AlertCircle,
+  TrendingUp, BookOpen, Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 

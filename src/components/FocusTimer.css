@@ -1,85 +1,201 @@
-/* Focus Timer Component Styles */
-.sound-btn-active {
-  animation: pulse 0.2s ease-in-out;
-}
+/* Enhanced Focus Timer Styles */
 
-.btn-pulse {
-  animation: pulse 0.3s ease-in-out;
-}
-
-.settings-btn-pulse {
-  animation: settingsPulse 0.3s ease-in-out;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.92); }
-  100% { transform: scale(1); }
-}
-
-@keyframes settingsPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.98); }
-  100% { transform: scale(1); }
-}
-
-/* Popraw responsywność przycisków */
-button:active {
-  transform: scale(0.95);
-}
-
-/* Usunięcie domyślnego outline dla przycisków */
-button:focus {
+/* Custom Range Slider for Time Adjustment */
+.focus-slider-blue {
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
   outline: none;
 }
 
-/* Usuń domyślne style iOS na przyciskach */
-button {
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
+.focus-slider-blue::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #60a5fa, #a78bfa);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+  border: 2px solid white;
+  transition: all 0.2s ease;
 }
 
-/* Styl dla przycisków kontrolnych timera */
-.timer-control-button {
-  transition: all 0.2s ease-in-out;
-  position: relative;
-  overflow: hidden;
-  user-select: none;
+.focus-slider-blue::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.6);
 }
 
-.timer-control-button::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-  border-radius: 100%;
-  transform: scale(1, 1) translate(-50%, -50%);
-  transform-origin: 50% 50%;
+.focus-slider-blue::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #60a5fa, #a78bfa);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+  border: 2px solid white;
+  transition: all 0.2s ease;
 }
 
-.timer-control-button:active::after {
-  animation: ripple 0.6s ease-out;
+.focus-slider-blue::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.6);
 }
 
-@keyframes ripple {
+.focus-slider-green {
+  background: linear-gradient(to right, #10b981, #14b8a6);
+  outline: none;
+}
+
+.focus-slider-green::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #34d399, #5eead4);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+  border: 2px solid white;
+  transition: all 0.2s ease;
+}
+
+.focus-slider-green::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.6);
+}
+
+.focus-slider-green::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #34d399, #5eead4);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+  border: 2px solid white;
+  transition: all 0.2s ease;
+}
+
+.focus-slider-green::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.6);
+}
+
+/* Pulse animation for timer state */
+@keyframes timer-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.timer-running {
+  animation: timer-pulse 2s ease-in-out infinite;
+}
+
+/* Progress bar animations */
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
+.progress-animated {
+  animation: progress-fill 1s ease-out;
+}
+
+/* Session transition effects */
+@keyframes session-change {
   0% {
-    transform: scale(0, 0);
-    opacity: 0.5;
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(2deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-2deg);
   }
   100% {
-    transform: scale(20, 20);
-    opacity: 0;
+    transform: scale(1) rotate(0deg);
   }
 }
 
-/* Poprawione stany hover dla przycisków na urządzeniach dotykowych */
-@media (hover: hover) {
-  .timer-control-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.session-changing {
+  animation: session-change 0.8s ease-in-out;
+}
+
+/* Glow effects for active states */
+.timer-glow-blue {
+  box-shadow: 
+    0 0 20px rgba(59, 130, 246, 0.3),
+    0 0 40px rgba(59, 130, 246, 0.2),
+    0 0 60px rgba(59, 130, 246, 0.1);
+}
+
+.timer-glow-green {
+  box-shadow: 
+    0 0 20px rgba(16, 185, 129, 0.3),
+    0 0 40px rgba(16, 185, 129, 0.2),
+    0 0 60px rgba(16, 185, 129, 0.1);
+}
+
+/* Button hover effects */
+.timer-button-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timer-button-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Time display effects */
+.time-display {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mobile responsive slider adjustments */
+@media (max-width: 768px) {
+  .focus-slider-blue::-webkit-slider-thumb,
+  .focus-slider-green::-webkit-slider-thumb {
+    height: 24px;
+    width: 24px;
   }
+  
+  .focus-slider-blue::-moz-range-thumb,
+  .focus-slider-green::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+  }
+}
+
+/* Accessibility improvements */
+.focus-slider-blue:focus,
+.focus-slider-green:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar for time editor */
+.time-editor::-webkit-scrollbar {
+  width: 6px;
+}
+
+.time-editor::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.time-editor::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.time-editor::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }

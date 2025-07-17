@@ -119,11 +119,13 @@ const NewQuestDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
-          id="add-quest-button"
+          data-new-quest-trigger
           variant="default" 
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-lg font-semibold text-base"
+          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl text-sm px-4 sm:px-6 py-2 sm:py-3 shadow-lg border border-green-500/50 transition-all hover:shadow-green-500/20 hover:scale-105"
         >
-          <Plus size={20} /> New Quest
+          <Plus size={18} />
+          <span className="hidden sm:inline">New Quest</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg w-full rounded-2xl p-8 bg-white dark:bg-zinc-900 shadow-2xl border border-blue-200 dark:border-zinc-800">

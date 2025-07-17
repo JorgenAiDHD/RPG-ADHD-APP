@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { cn } from "../../lib/cn";
+import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
 // Komponent dialogu Shadcn UI.
 const Dialog = DialogPrimitive.Root

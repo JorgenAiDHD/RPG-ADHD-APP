@@ -338,6 +338,7 @@ const AICompanion = () => {
               title: functionArgs.title,
               description: description,
               type: functionArgs.type || 'side',
+              category: functionArgs.category || 'general',
               xpReward: typeof functionArgs.xpReward === 'number' ? functionArgs.xpReward : 20,
               priority: functionArgs.priority || 'medium',
               status: 'active' as 'active' | 'completed' | 'failed' | 'paused',
@@ -636,36 +637,172 @@ Is there anything specific you'd like to work on today?`);
             
             setCompanionResponse(`🧭 ${recommendation}\n\n${supportingTip}\n\n✨ ${randomCelebration}`);
             break;
-            
+
+          case 'change_color_palette':
+            console.log("Changing color palette:", functionArgs);
+            try {
+              // Import the color palette functions
+              const { availablePalettes, applyColorPalette } = await import('../styles/colorPalettes');
+              const paletteId = functionArgs.paletteId || functionArgs.palette || 'adhd-friendly';
+              const palette = availablePalettes.find(p => p.id === paletteId || p.name.toLowerCase().includes(paletteId.toLowerCase()));
+              
+              if (palette) {
+                applyColorPalette(palette);
+                setCompanionResponse(`🎨 Pomyślnie zmieniłem paletę kolorów na "${palette.name}"! ${palette.description}`);
+                toast.success(`Paleta "${palette.name}" została zastosowana!`);
+              } else {
+                const availableNames = availablePalettes.map(p => p.name).join(', ');
+                setCompanionResponse(`❌ Nie znalazłem palety "${paletteId}". Dostępne palety: ${availableNames}`);
+              }
+            } catch (error) {
+              console.error('Error changing color palette:', error);
+              setCompanionResponse('❌ Wystąpił błąd podczas zmiany palety kolorów.');
+            }
+            break;
+
+          case 'add_journal_entry':
+            console.log("Adding journal entry:", functionArgs);
+            try {
+              const journalId = functionArgs.journalId || 'gratitude';
+              const entryText = functionArgs.entry || functionArgs.text || 'Nowy wpis';
+              
+              actions.addJournalEntry(journalId, {
+                id: crypto.randomUUID(),
+                text: entryText,
+                date: new Date().toISOString(),
+                mood: functionArgs.mood || 3
+              });
+              
+              setCompanionResponse(`📝 Dodałem wpis do dziennika "${journalId}": "${entryText}"`);
+              toast.success('Wpis został dodany do dziennika!');
+            } catch (error) {
+              console.error('Error adding journal entry:', error);
+              setCompanionResponse('❌ Wystąpił błąd podczas dodawania wpisu do dziennika.');
+            }
+            break;
+
+          case 'update_energy_mood':
+            console.log("Updating energy and mood:", functionArgs);
+            try {
+              const energySystem = {
+                current: functionArgs.energy || state.energySystem.current,
+                maximum: state.energySystem.maximum,
+                dailyRating: functionArgs.dailyRating || functionArgs.mood || state.energySystem.dailyRating,
+                sleepHours: functionArgs.sleepHours || state.energySystem.sleepHours,
+                moodLevel: functionArgs.moodLevel || functionArgs.mood || state.energySystem.moodLevel,
+                anxietyLevel: functionArgs.anxietyLevel || state.energySystem.anxietyLevel,
+                stressLevel: functionArgs.stressLevel || state.energySystem.stressLevel,
+                lastUpdated: new Date()
+              };
+              
+              actions.updateEnergySystem(energySystem);
+              setCompanionResponse(`💪 Zaktualizowałem Twój stan energii i nastroju. Energia: ${energySystem.current}, Nastrój: ${energySystem.moodLevel}/10`);
+              toast.success('Stan energii i nastroju został zaktualizowany!');
+            } catch (error) {
+              console.error('Error updating energy mood:', error);
+              setCompanionResponse('❌ Wystąpił błąd podczas aktualizacji stanu energii.');
+            }
+            break;
+
+          case 'activate_bonus_xp':
+            console.log("Activating bonus XP:", functionArgs);
+            try {
+              const multiplier = functionArgs.multiplier || 2;
+              const duration = functionArgs.duration || 60; // minutes
+              const reason = functionArgs.reason || 'AI Companion bonus';
+              
+              actions.activateBonusXP(multiplier, duration, reason);
+              setCompanionResponse(`⚡ Aktywowałem bonus XP x${multiplier} na ${duration} minut! Powód: ${reason}`);
+              toast.success(`Bonus XP x${multiplier} aktywowany!`);
+            } catch (error) {
+              console.error('Error activating bonus XP:', error);
+              setCompanionResponse('❌ Wystąpił błąd podczas aktywacji bonusu XP.');
+            }
+            break;
+
+          case 'update_mood_environment':
+            console.log("Updating mood environment:", functionArgs);
+            try {
+              const mood = functionArgs.mood || 3;
+              const emotion = functionArgs.emotion || 'calm';
+              
+              actions.updateMoodEnvironment(mood, emotion);
+              setCompanionResponse(`🌟 Zaktualizowałem środowisko nastroju na "${emotion}" z poziomem ${mood}. Inner Realms zostały dostosowane do Twojego stanu!`);
+              toast.success('Środowisko nastroju zostało zaktualizowane!');
+            } catch (error) {
+              console.error('Error updating mood environment:', error);
+              setCompanionResponse('❌ Wystąpił błąd podczas aktualizacji środowiska nastroju.');
+            }
+            break;
+
           case 'provide_help':
             console.log("Providing help");
             setCompanionResponse(`
-🤖 **AI Companion Help - ADHD-przyjazny Asystent**
+🤖 **AI Companion Help - ADHD-przyjazny Asystent v0.2**
 
-Witaj, podróżniku! Jestem Twoim towarzyszem AI. Mogę pomóc Ci tworzyć zadania dostosowane do Twoich potrzeb, proponować strategie, a nawet dodawać motywacji. Jak mogę Ci dziś pomóc?
+Witaj, podróżniku! Jestem Twoim zaawansowanym towarzyszem AI z pełnym dostępem do wszystkich funkcji aplikacji. Mogę pomóc Ci w każdym aspekcie Twojej podróży!
 
-• **Dodaj zadanie** - "Dodaj mikro-zadanie 'Przeczytaj przez 10 minut'"
-• **Ukończ zadanie** - "Oznacz zadanie czytania jako ukończone"
-• **Zapisz aktywność zdrowotną** - "Zapisz aktywność 'Poranna medytacja'"
-• **Ustaw główną misję** - "Ustaw główne zadanie 'Ukończ projekt do piątku'"
-• **Przepisz główną misję** - "Przepisz główną misję w sposób przyjazny dla ADHD"
-• **Aktywuj bonus XP** - "Aktywuj 2x bonus XP za sesję skupienia"
+**🎯 Zarządzanie Zadaniami:**
+• "Dodaj zadanie 'Przeczytaj przez 10 minut'"
+• "Ukończ zadanie czytania"
+• "Dodaj zadanie ADHD-friendly z krótkim czasem"
+• "Ustaw główną misję 'Ukończ projekt'"
 
-Możesz także poprosić o:
-• "Jak mi idzie?" - aby uzyskać aktualizację statusu
-• "Co powinienem zrobić dalej?" - dla rekomendacji mikro-zadań
-• "Opowiedz o moich osiągnięciach" - aby zobaczyć swój postęp
-• "Czuję się przytłoczony/a" - dla wsparcia emocjonalnego
-• "Mam trudności ze skupieniem" - dla strategii koncentracji
+**🎨 Personalizacja i Palety Kolorów:**
+• "Zmień paletę na cyberpunk"
+• "Przełącz na ADHD-friendly kolory"
+• "Zastosuj ciepłą paletę gradientową"
+• "Pokaż dostępne palety kolorów"
 
-**ADHD-przyjazne funkcje:**
-• Mikro-zadania dla szybkich sukcesów
-• Rozbijanie złożonych zadań na mniejsze kroki
-• Dostosowane techniki skupiania z Timerem Fokusowym
-• Przypomnienia o przerwach i dbaniu o siebie
-• System nagród dla zwiększenia motywacji
+**📝 Dzienniki i Nastrój:**
+• "Dodaj wpis do dziennika wdzięczności"
+• "Zapisz wpis w dzienniku snów"
+• "Zaktualizuj mój nastrój na radosny"
+• "Ustaw poziom energii na 7"
 
-W jaki sposób mogę Ci dziś pomóc?`);
+**💪 System Energii i Samopoczucie:**
+• "Zaktualizuj moją energię i nastrój"
+• "Ustaw poziom stresu na niski"
+• "Zapisz 8 godzin snu"
+• "Zaktualizuj poziom lęku"
+
+**🌟 Bonusy i Osiągnięcia:**
+• "Aktywuj bonus XP x2 na 30 minut"
+• "Daj mi motywacyjny boost"
+• "Sprawdź moje osiągnięcia"
+
+**🌍 Inner Realms i Środowisko:**
+• "Przełącz na spokojne środowisko"
+• "Ustaw nastrój na kreatywny"
+• "Zmień realm na Floating Islands"
+
+**💊 Zdrowie i Aktywności:**
+• "Zapisz aktywność 'Poranna medytacja'"
+• "Dodaj ćwiczenia oddechowe"
+• "Zapisz posiłek pełnowartościowy"
+
+**📊 Status i Analityka:**
+• "Jak mi idzie?" - pełny raport statusu
+• "Co powinienem zrobić dalej?"
+• "Pokaż moje statystyki"
+• "Opowiedz o moim postępie"
+
+**🧠 Wsparcie ADHD:**
+• "Czuję się przytłoczony/a"
+• "Mam trudności ze skupieniem"
+• "Pomóż mi rozbić to zadanie"
+• "Potrzebuję mikro-zadań"
+
+**Nowe funkcje v0.2:**
+• Klasy postaci i umiejętności
+• Rozszerzony system energii
+• Wielopoziomowe dzienniki
+• Inner Realms z dynamicznym środowiskiem
+• Zaawansowane osiągnięcia
+• Analityka i statystyki
+• Kompletny system palet kolorów
+
+W jaki sposób mogę Ci dziś pomóc? 🚀`);
             break;
             
           default:
@@ -678,7 +815,9 @@ W jaki sposób mogę Ci dziś pomóc?`);
             console.log("Known function names:", [
               'add_quest', 'complete_quest', 'log_health_activity', 
               'set_main_quest', 'set_season_name', 'get_player_status',
-              'suggest_next_task', 'provide_help'
+              'suggest_next_task', 'provide_help', 'change_color_palette',
+              'add_journal_entry', 'update_energy_mood', 'activate_bonus_xp',
+              'update_mood_environment'
             ]);
             break;
         }
