@@ -54,8 +54,8 @@ const RepeatableActionsPanel = () => {
     // Increment the action
     const updatedAction = RepeatableActionsSystem.incrementAction(action);
     
-    // Update the state with the new action data - temporary implementation
-    // actions.updateRepeatableAction(updatedAction.id, updatedAction);
+    // Update the state with the new action data
+    actions.updateRepeatableAction(updatedAction.id, updatedAction);
     console.log('Completing repeatable action:', updatedAction);
     
     // Add XP and Gold
@@ -90,7 +90,7 @@ const RepeatableActionsPanel = () => {
     if (!action) return;
 
     const resetAction = RepeatableActionsSystem.resetAction(action);
-    // actions.updateRepeatableAction(resetAction.id, resetAction);
+    actions.updateRepeatableAction(resetAction.id, resetAction);
     console.log('Resetting repeatable action:', resetAction);
     
     toast.info(`🔄 ${action.title} reset`, {

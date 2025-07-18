@@ -397,16 +397,6 @@ const Index = () => {
         onOpenChange={setShowColorPalette} 
       />
       
-      {/* TEMPORARY SCROLL TEST - REMOVE AFTER FIXING */}
-      <div className="bg-red-100 p-4 m-4 text-center">
-        <h2 className="text-2xl font-bold mb-4">TEST PRZEWIJANIA - USUŃ PO NAPRAWIE</h2>
-        {Array.from({length: 50}, (_, i) => (
-          <div key={i} className="p-2 border-b">Linia testowa {i + 1} - sprawdzenie przewijania strony</div>
-        ))}
-        <div className="bg-green-200 p-4 mt-4 font-bold">
-          ↑ JEŚLI WIDZISZ TEN TEKST, PRZEWIJANIE DZIAŁA ↑
-        </div>
-      </div>
     </div>
   );
 };

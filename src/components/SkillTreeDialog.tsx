@@ -40,10 +40,12 @@ function SkillTreeDialog() {
           </Button>
         </motion.div>
       </DialogTrigger>
-      <DialogContent className="bg-gradient-to-br from-gray-900 to-zinc-800 border-gray-700 text-white max-w-2xl rounded-xl shadow-2xl shadow-purple-950/50">
-        <DialogHeader>
-          <DialogTitle className="text-white text-2xl font-bold">Skill Tree</DialogTitle>
-          <p className="text-gray-400 text-sm">Spend your <span className="text-cyan-400 font-semibold">{state.player.skillPoints} Skill Points</span> to unlock powerful neuro-enhancements!</p>
+      <DialogContent className="bg-gray-900 border-gray-600 text-white max-w-2xl rounded-xl shadow-2xl">
+        <DialogHeader className="border-b border-gray-700 pb-4">
+          <DialogTitle className="text-white text-2xl font-bold flex items-center gap-2">
+            <span>Skill Tree</span>
+          </DialogTitle>
+          <p className="text-gray-300 text-sm">Spend your <span className="text-cyan-400 font-semibold">{state.player.skillPoints} Skill Points</span> to unlock powerful neuro-enhancements!</p>
         </DialogHeader>
         <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
           {ALL_SKILLS.map((skill) => {

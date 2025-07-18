@@ -517,54 +517,54 @@ export const applyColorPalette = (palette: ColorPalette) => {
   
   // Apply primary colors
   Object.entries(palette.primary).forEach(([shade, color]) => {
-    root.style.setProperty(`--primary-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--primary-${shade}`, color);
   });
   
   // Apply secondary colors
   Object.entries(palette.secondary).forEach(([shade, color]) => {
-    root.style.setProperty(`--secondary-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--secondary-${shade}`, color);
   });
   
   // Apply accent colors
   Object.entries(palette.accent).forEach(([shade, color]) => {
-    root.style.setProperty(`--accent-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--accent-${shade}`, color);
   });
   
   // Apply success colors
   Object.entries(palette.success).forEach(([shade, color]) => {
-    root.style.setProperty(`--success-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--success-${shade}`, color);
   });
   
   // Apply warning colors
   Object.entries(palette.warning).forEach(([shade, color]) => {
-    root.style.setProperty(`--warning-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--warning-${shade}`, color);
   });
   
   // Apply error colors
   Object.entries(palette.error).forEach(([shade, color]) => {
-    root.style.setProperty(`--error-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--error-${shade}`, color);
   });
   
   // Apply surface colors
   Object.entries(palette.surface).forEach(([shade, color]) => {
-    root.style.setProperty(`--surface-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--surface-${shade}`, color);
   });
   
   // Apply ADHD-specific colors
   Object.entries(palette.adhd.focus).forEach(([shade, color]) => {
-    root.style.setProperty(`--adhd-focus-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--adhd-focus-${shade}`, color);
   });
   
   Object.entries(palette.adhd.calm).forEach(([shade, color]) => {
-    root.style.setProperty(`--adhd-calm-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--adhd-calm-${shade}`, color);
   });
   
   Object.entries(palette.adhd.energy).forEach(([shade, color]) => {
-    root.style.setProperty(`--adhd-energy-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--adhd-energy-${shade}`, color);
   });
   
   Object.entries(palette.adhd.creative).forEach(([shade, color]) => {
-    root.style.setProperty(`--adhd-creative-${shade}`, color.replace('#', ''));
+    root.style.setProperty(`--adhd-creative-${shade}`, color);
   });
   
   // Store current palette in localStorage

@@ -57,8 +57,8 @@ const RepeatableActionsPanel = () => {
     // Increment the action
     const updatedAction = RepeatableActionsSystem.incrementAction(action);
     
-    // Update state - for now just show toast since we need to add the action to GameContext
-    // TODO: Add updateRepeatableAction to GameContext
+    // Update state
+    actions.updateRepeatableAction(updatedAction.id, updatedAction);
     
     // Add XP
     actions.addXP({
@@ -89,8 +89,8 @@ const RepeatableActionsPanel = () => {
     const action = repeatableActions.find(a => a.id === actionId);
     if (!action) return;
 
-    RepeatableActionsSystem.resetAction(action);
-    // TODO: Update in GameContext
+    const resetAction = RepeatableActionsSystem.resetAction(action);
+    actions.updateRepeatableAction(resetAction.id, resetAction);
     
     toast.info(`🔄 ${action.title} reset`, {
       description: 'Ready for a fresh start!'

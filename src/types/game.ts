@@ -4,8 +4,9 @@ import type { QuestAction } from '../reducers/questReducer';
 import type { HealthAction } from '../reducers/healthReducer';
 import type { CollectiblesAction } from '../reducers/collectiblesReducer';
 import type { GeneralAction } from '../reducers/generalReducer';
+import type { RepeatableActionsAction } from '../reducers/repeatableActionsReducer';
 
-export type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction;
+export type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | RepeatableActionsAction;
 
 export interface GameContextType {
   state: GameState;

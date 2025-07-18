@@ -5,6 +5,7 @@ import { questReducer } from '../reducers/questReducer';
 import { healthReducer } from '../reducers/healthReducer';
 import { collectiblesReducer } from '../reducers/collectiblesReducer';
 import { generalReducer } from '../reducers/generalReducer';
+import { repeatableActionsReducer, RepeatableActionsAction } from '../reducers/repeatableActionsReducer';
 import { ALL_ACHIEVEMENTS } from '../data/achievements';
 import { DEFAULT_HEALTH_ACTIVITIES } from '../data/healthActivities';
 import { RepeatableActionsSystem } from '../utils/repeatableActions';
@@ -23,7 +24,7 @@ import { analyticsReducer, type AnalyticsAction } from '../reducers/analyticsRed
 
 // Główny reducer, który deleguje akcje do mniejszych reducerów
 // Definicja wszystkich możliwych akcji w grze
-type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | AnalyticsAction | 
+type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | AnalyticsAction | RepeatableActionsAction |
   { type: 'REMOVE_QUEST'; payload: string } |
   // v0.3 Inner Realms Actions
   { type: 'UPDATE_MOOD_ENVIRONMENT'; payload: { mood: number; emotion: EmotionRealm['emotionType'] } } |
@@ -237,6 +238,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'UPDATE_STREAK_CHALLENGE':
       updates = analyticsReducer(state, action as AnalyticsAction);
       break;
+    case 'UPDATE_REPEATABLE_ACTION':
+    case 'ADD_REPEATABLE_ACTION':
+    case 'REMOVE_REPEATABLE_ACTION':
+      updates = repeatableActionsReducer(state, action as RepeatableActionsAction);
+      break;
     case 'LOAD_GAME_STATE':
     case 'UPDATE_SEASON_PROGRESS':
     case 'LOG_ACTIVITY':
@@ -415,6 +421,11 @@ interface GameContextType {
     updateRealmIntensity: (realmId: string, activity: string, duration?: number) => void;
     triggerRealmEvent: (realmId: string, eventId: string) => void;
     unlockNarrative: (realmId: string, narrativeId: string) => void;
+    
+    // Repeatable Actions methods
+    updateRepeatableAction: (actionId: string, updates: any) => void;
+    addRepeatableAction: (action: any) => void;
+    removeRepeatableAction: (actionId: string) => void;
   };
 }
 
@@ -617,16 +628,13 @@ function GameProvider({ children }: { children: ReactNode }) {
     
     // Repeatable Actions methods
     updateRepeatableAction: (actionId: string, updates: any) => {
-      console.log('updateRepeatableAction called:', actionId, updates);
-      // For now, just log - implement full functionality later
+      dispatch({ type: 'UPDATE_REPEATABLE_ACTION', payload: { actionId, updates } });
     },
     addRepeatableAction: (action: any) => {
-      console.log('addRepeatableAction called:', action);
-      // For now, just log - implement full functionality later
+      dispatch({ type: 'ADD_REPEATABLE_ACTION', payload: action });
     },
     removeRepeatableAction: (actionId: string) => {
-      console.log('removeRepeatableAction called:', actionId);
-      // For now, just log - implement full functionality later
+      dispatch({ type: 'REMOVE_REPEATABLE_ACTION', payload: actionId });
     }
   };
 
