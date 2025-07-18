@@ -147,13 +147,22 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
     
     // Calculate score
     let correctAnswers = 0;
-    quiz.questions.forEach(question => {
+    console.log('🔍 Checking answers:', answers);
+    quiz.questions.forEach((question, index) => {
       const userAnswer = answers[question.id];
-      if (userAnswer === question.correctAnswer) {
+      const isCorrect = userAnswer === question.correctAnswer;
+      console.log(`Question ${index + 1}:`, {
+        question: question.question,
+        userAnswer,
+        correctAnswer: question.correctAnswer,
+        isCorrect
+      });
+      if (isCorrect) {
         correctAnswers++;
       }
     });
     
+    console.log(`🎯 Final score: ${correctAnswers}/${quiz.questions.length}`);
     const scoreResults = BrainTrainingSystem.calculateScore(quiz, correctAnswers);
     setResults(scoreResults);
     setShowResults(true);
@@ -170,6 +179,20 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
     actions.addGold(goldReward, `Brain Training Reward: ${quiz.title}`);
     
     onComplete?.(scoreResults);
+  };
+
+  const startNewQuiz = () => {
+    console.log('🔄 Starting new quiz...');
+    const newQuiz = BrainTrainingSystem.getRandomQuiz();
+    setQuiz(newQuiz);
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setTimeLeft(0);
+    setQuizTimeLeft(0);
+    setIsActive(false);
+    setShowResults(false);
+    setResults(null);
+    console.log('🧠 New quiz loaded:', newQuiz.title);
   };
 
   const formatTime = (seconds: number) => {
@@ -285,7 +308,7 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">{currentQuestion.question}</h3>
               
-              {currentQuestion.type === 'multiple_choice' && currentQuestion.options && (
+              {(currentQuestion.type === 'multiple_choice' || (currentQuestion.type === 'sequence' && currentQuestion.options)) && currentQuestion.options && (
                 <div className="space-y-2">
                   {currentQuestion.options.map((option, index) => (
                     <Button
@@ -301,7 +324,7 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
                 </div>
               )}
 
-              {currentQuestion.type === 'sequence' && (
+              {currentQuestion.type === 'sequence' && !currentQuestion.options && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Enter your answer below:
@@ -412,8 +435,42 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
               </p>
             </div>
 
+            {/* Question Review */}
+            <Card className="p-6">
+              <h4 className="font-semibold text-lg mb-4">📝 Question Review</h4>
+              <div className="space-y-4">
+                {quiz.questions.map((question, index) => {
+                  const userAnswer = answers[question.id];
+                  const isCorrect = userAnswer === question.correctAnswer;
+                  return (
+                    <div key={question.id} className={`p-4 rounded-lg border ${isCorrect ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {isCorrect ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-600" />
+                        )}
+                        <span className="font-medium">Question {index + 1}</span>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{question.question}</p>
+                      <div className="text-xs space-y-1">
+                        <div className={`${isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                          Your answer: {userAnswer?.toString() || 'No answer'}
+                        </div>
+                        {!isCorrect && (
+                          <div className="text-green-700 dark:text-green-300">
+                            Correct answer: {question.correctAnswer?.toString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setQuiz(BrainTrainingSystem.getRandomQuiz())} className="flex-1">
+              <Button variant="outline" onClick={startNewQuiz} className="flex-1">
                 Try Another Quiz
               </Button>
               <Button onClick={onClose} className="flex-1">

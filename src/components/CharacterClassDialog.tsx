@@ -6,6 +6,7 @@ import { Progress } from './ui/progress';
 import { useGame } from '../context/GameContext';
 import { CharacterClassSystem, SkillChartSystem, type CharacterClass } from '../utils/characterClasses';
 import { SkillChartRadar, SkillChartHexagon } from './SkillChartRadar';
+import { SkillMappingManager } from './SkillMappingManager';
 import type { PlayerSkill } from '../types/game';
 
 interface CharacterClassDialogProps {
@@ -143,10 +144,18 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
       {/* Skill Chart Radar */}
       <div className="flex justify-center mb-6">
         <div className="hidden md:block">
-          <SkillChartRadar skillChart={skillChart} size={300} />
+          <SkillChartRadar 
+            key={`radar-${skillChart.skills.map(s => `${s.id}-${s.level}-${s.experience}`).join('-')}`}
+            skillChart={skillChart} 
+            size={300} 
+          />
         </div>
         <div className="md:hidden">
-          <SkillChartHexagon skillChart={skillChart} size={200} />
+          <SkillChartHexagon 
+            key={`hex-${skillChart.skills.map(s => `${s.id}-${s.level}-${s.experience}`).join('-')}`}
+            skillChart={skillChart} 
+            size={200} 
+          />
         </div>
       </div>
 
@@ -243,6 +252,15 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
           >
             Skill Chart
           </Button>
+          {activeTab === 'skills' && (
+            <SkillMappingManager 
+              trigger={
+                <Button variant="outline" size="sm">
+                  ⚙️ Rules
+                </Button>
+              }
+            />
+          )}
         </div>
 
         {activeTab === 'classes' && (
