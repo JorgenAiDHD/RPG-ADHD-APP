@@ -47,7 +47,9 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
   // Load random quiz if none provided
   useEffect(() => {
     if (!quiz) {
-      setQuiz(BrainTrainingSystem.getRandomQuiz());
+      const randomQuiz = BrainTrainingSystem.getRandomQuiz();
+      console.log('🧠 Loading random brain training quiz:', randomQuiz);
+      setQuiz(randomQuiz);
     }
   }, [quiz]);
 
@@ -86,8 +88,12 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
   }, [isActive, quizTimeLeft, quiz]);
 
   const startQuiz = () => {
-    if (!quiz) return;
+    if (!quiz) {
+      console.error('❌ No quiz available to start!');
+      return;
+    }
     
+    console.log('🚀 Starting brain training quiz:', quiz.title);
     setIsActive(true);
     setCurrentQuestionIndex(0);
     setAnswers({});
@@ -153,6 +159,7 @@ export const BrainTrainingQuizComponent: React.FC<BrainTrainingQuizComponentProp
     setShowResults(true);
     
     // Award XP
+    console.log('🏆 Awarding brain training rewards:', scoreResults);
     actions.addXP({
       amount: scoreResults.xpEarned,
       reason: `Brain Training: ${quiz.title}`

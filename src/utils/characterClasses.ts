@@ -285,6 +285,10 @@ export class SkillChartSystem {
       'focus_session': [
         { skillId: 'focus', xp: 10 },
         { skillId: 'meditation', xp: 6 }
+      ],
+      'daily_action_completed': [
+        { skillId: 'organization', xp: 3 },
+        { skillId: 'resilience', xp: 2 }
       ]
     };
 
@@ -294,7 +298,9 @@ export class SkillChartSystem {
         'learning': [{ skillId: 'learning', xp: 10 }],
         'creative': [{ skillId: 'creativity', xp: 10 }],
         'social': [{ skillId: 'social', xp: 10 }],
-        'health': [{ skillId: 'exercise', xp: 8 }, { skillId: 'meditation', xp: 6 }]
+        'health': [{ skillId: 'exercise', xp: 8 }, { skillId: 'meditation', xp: 6 }],
+        'work': [{ skillId: 'organization', xp: 8 }, { skillId: 'focus', xp: 6 }],
+        'personal': [{ skillId: 'resilience', xp: 6 }, { skillId: 'organization', xp: 4 }]
       };
 
       const categorySkills = categoryMappings[questCategory];
