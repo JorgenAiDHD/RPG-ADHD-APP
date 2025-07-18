@@ -40,7 +40,7 @@ const Index = () => {
   const { state, actions } = useGame();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50 dark:from-neutral-900 dark:via-blue-950 dark:to-purple-950 font-sans text-neutral-900 dark:text-neutral-100 overflow-x-hidden">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50 dark:from-neutral-900 dark:via-blue-950 dark:to-purple-950 font-sans text-neutral-900 dark:text-neutral-100">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8 md:py-10">
         {/* ADHD-Friendly Hero Section */}
         <motion.div
@@ -396,6 +396,17 @@ const Index = () => {
         open={showColorPalette} 
         onOpenChange={setShowColorPalette} 
       />
+      
+      {/* TEMPORARY SCROLL TEST - REMOVE AFTER FIXING */}
+      <div className="bg-red-100 p-4 m-4 text-center">
+        <h2 className="text-2xl font-bold mb-4">TEST PRZEWIJANIA - USUŃ PO NAPRAWIE</h2>
+        {Array.from({length: 50}, (_, i) => (
+          <div key={i} className="p-2 border-b">Linia testowa {i + 1} - sprawdzenie przewijania strony</div>
+        ))}
+        <div className="bg-green-200 p-4 mt-4 font-bold">
+          ↑ JEŚLI WIDZISZ TEN TEKST, PRZEWIJANIE DZIAŁA ↑
+        </div>
+      </div>
     </div>
   );
 };

@@ -8,7 +8,7 @@ export const App = () => {
   return (
     <ThemeProvider>
       <GameProvider>
-        <div className="app min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:via-zinc-950 dark:to-black text-foreground">
+        <div className="app bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:via-zinc-950 dark:to-black text-foreground">
           <Toaster 
             position="top-right" 
             toastOptions={{

@@ -409,9 +409,9 @@
 
 /* Ensure full viewport height for the main app container */
 #app, html, body {
-  height: 100%;
   margin: 0;
   padding: 0;
+  min-height: 100vh; /* Use min-height instead of height to allow content expansion */
   overflow-x: hidden; /* Prevent horizontal scrolling */
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS devices */
 }
