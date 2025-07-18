@@ -145,22 +145,18 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
 
   const renderSkillChart = () => (
     <div className="space-y-6">
-      {/* Skill Chart Radar */}
-      <div className="flex justify-center mb-6">
-        <div className="hidden md:block mb-8">
-          <SkillChartRadar 
-            key={`radar-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
-            skillChart={skillChart} 
-            size={300} 
-          />
-        </div>
-        <div className="md:hidden mb-16">
-          <SkillChartHexagon 
-            key={`hex-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
-            skillChart={skillChart} 
-            size={200} 
-          />
-        </div>
+      {/* Skill Chart Radar & Hexagon - Always visible */}
+      <div className="flex flex-col items-center gap-6 mb-6">
+        <SkillChartRadar 
+          key={`radar-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
+          skillChart={skillChart} 
+          size={300} 
+        />
+        <SkillChartHexagon 
+          key={`hex-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
+          skillChart={skillChart} 
+          size={200} 
+        />
       </div>
 
       {/* Overall Stats */}
