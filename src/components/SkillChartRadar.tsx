@@ -603,7 +603,7 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
           </g>
         ))}
 
-        {/* Enhanced center circle - Clean Design */}
+        {/* Enhanced center circle with hexagon info */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -614,27 +614,28 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
           className="drop-shadow-lg"
           filter="url(#skillGlow)"
         />
+        
+        {/* Center text for hexagon - Essential Info */}
+        <text
+          x={size / 2}
+          y={size / 2 - 8}
+          textAnchor="middle"
+          className="text-sm font-bold fill-current text-blue-600 dark:text-blue-400"
+        >
+          Lv {skillChart.overallLevel}
+        </text>
+        <text
+          x={size / 2}
+          y={size / 2 + 6}
+          textAnchor="middle"
+          className="text-xs font-medium fill-current text-gray-600 dark:text-gray-400"
+        >
+          Overall
+        </text>
       </svg>
       
       {/* Professional UI Layout - No Overlapping Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Center Info Panel - Perfectly Centered */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-xl px-4 py-3 shadow-xl border border-gray-200/50 dark:border-gray-600/50">
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-1">
-                Lv {skillChart.overallLevel}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                {topSkills.length} Active Skills
-              </div>
-              <div className="text-xs text-green-600 dark:text-green-400 font-semibold">
-                {Math.round(hexagonData.triangularSegments.reduce((sum, seg) => sum + seg.realProgressPercent, 0) / hexagonData.triangularSegments.length)}% Avg Progress
-              </div>
-            </div>
-          </div>
-        </div>
-        
+      <div className="absolute inset-0 pointer-events-none">        
         {/* Progress Legend - Bottom Right */}
         <div className="absolute bottom-3 right-3">
           <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-gray-200/30 dark:border-gray-600/30">
@@ -654,6 +655,23 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
                 <span className="text-gray-700 dark:text-gray-300 font-medium">Basic</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Stats Info Panel - Top Right (no overlap with center) */}
+        <div className="absolute top-3 right-3">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-gray-200/50 dark:border-gray-600/50">
+            <div className="text-center">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                {topSkills.length} Active Skills
+              </div>
+              <div className="text-sm text-green-600 dark:text-green-400 font-bold">
+                {Math.round(hexagonData.triangularSegments.reduce((sum, seg) => sum + seg.realProgressPercent, 0) / hexagonData.triangularSegments.length)}%
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Avg Progress
               </div>
             </div>
           </div>
