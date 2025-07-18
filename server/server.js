@@ -531,7 +531,6 @@ app.get('/', (req, res) => {
 });
 
 app.get('/status', (req, res) => {
-  console.log('Status endpoint called');
   res.status(200).json({
     status: 'healthy',
     message: 'Server is running and healthy!',
