@@ -708,7 +708,11 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
             </div>
           </div>
         </div>
+
       )}
     </div>
   );
 };
+
+// Export both components for external use
+
