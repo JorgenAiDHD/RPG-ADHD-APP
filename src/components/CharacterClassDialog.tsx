@@ -147,14 +147,14 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
     <div className="space-y-6">
       {/* Skill Chart Radar */}
       <div className="flex justify-center mb-6">
-        <div className="hidden md:block">
+        <div className="hidden md:block mb-8">
           <SkillChartRadar 
             key={`radar-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
             skillChart={skillChart} 
             size={300} 
           />
         </div>
-        <div className="md:hidden">
+        <div className="md:hidden mb-16">
           <SkillChartHexagon 
             key={`hex-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
             skillChart={skillChart} 

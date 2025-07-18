@@ -603,7 +603,7 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
           </g>
         ))}
 
-        {/* Enhanced center circle with progress info */}
+        {/* Enhanced center circle - Clean Design */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -614,73 +614,81 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
           className="drop-shadow-lg"
           filter="url(#skillGlow)"
         />
-        
-        {/* Center text with overall progress */}
-        <text
-          x={size / 2}
-          y={size / 2 - 8}
-          textAnchor="middle"
-          className="text-sm font-bold fill-current text-blue-600 dark:text-blue-400"
-        >
-          Lv {skillChart.overallLevel}
-        </text>
-        <text
-          x={size / 2}
-          y={size / 2 + 6}
-          textAnchor="middle"
-          className="text-xs font-medium fill-current text-gray-600 dark:text-gray-400"
-        >
-          Overall
-        </text>
-      </svg>      {/* Center display with enhanced info */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow-lg border border-gray-200 dark:border-gray-600">
-          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-            Lv {skillChart.overallLevel}
-          </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            {topSkills.length} Active Skills
-          </div>
-          <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-            {Math.round(hexagonData.triangularSegments.reduce((sum, seg) => sum + seg.realProgressPercent, 0) / hexagonData.triangularSegments.length)}% Avg
-          </div>
-        </div>
-      </div>
+      </svg>
       
-      {/* Progress Legend */}
-      <div className="absolute bottom-2 left-2 right-2">
-        <div className="flex justify-center gap-2 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded bg-green-500"></div>
-            <span className="text-gray-600 dark:text-gray-400">80%+</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded bg-blue-500"></div>
-            <span className="text-gray-600 dark:text-gray-400">60%+</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded bg-orange-500"></div>
-            <span className="text-gray-600 dark:text-gray-400">40%+</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded bg-yellow-500"></div>
-            <span className="text-gray-600 dark:text-gray-400">20%+</span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Debug info in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-0 left-0 bg-black bg-opacity-75 text-white text-xs p-2 rounded max-w-xs">
-          <div className="font-bold mb-1">🎯 Enhanced Skill Progress Debug:</div>
-          {hexagonData.triangularSegments.slice(0, 3).map((seg, i) => (
-            <div key={i} className="mb-1">
-              <span className="text-yellow-300">{seg.skill.name}:</span>
-              <br />
-              <span className="text-green-300">Real: {Math.round(seg.realProgressPercent)}%</span>
-              <span className="text-blue-300 ml-2">Lv: {seg.skill.level}</span>
+      {/* Professional UI Layout - No Overlapping Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Center Info Panel - Perfectly Centered */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-xl px-4 py-3 shadow-xl border border-gray-200/50 dark:border-gray-600/50">
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-1">
+                Lv {skillChart.overallLevel}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                {topSkills.length} Active Skills
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-400 font-semibold">
+                {Math.round(hexagonData.triangularSegments.reduce((sum, seg) => sum + seg.realProgressPercent, 0) / hexagonData.triangularSegments.length)}% Avg Progress
+              </div>
             </div>
-          ))}
+          </div>
+        </div>
+        
+        {/* Progress Legend - Bottom Right */}
+        <div className="absolute bottom-3 right-3">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-gray-200/30 dark:border-gray-600/30">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Expert</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Good</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Fair</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Basic</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Development Debug Panel - Positioned Outside Chart */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute -bottom-4 left-0 right-0 mt-4">
+          <div className="bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700/50 max-w-md mx-auto">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+              <span className="font-bold text-yellow-300">🎯 Development Debug</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {hexagonData.triangularSegments.slice(0, 4).map((seg, i) => (
+                <div key={i} className="bg-gray-800/50 rounded p-2">
+                  <div className="font-medium text-yellow-300 text-xs mb-1">
+                    {seg.skill.icon} {seg.skill.name}
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-400">
+                      {Math.round(seg.realProgressPercent)}%
+                    </span>
+                    <span className="text-blue-400">
+                      Lv {seg.skill.level}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 text-center text-gray-400 text-xs">
+              Real-time progress calculation active
+            </div>
+          </div>
         </div>
       )}
     </div>
