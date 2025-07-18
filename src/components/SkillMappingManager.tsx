@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
 import { SkillChartSystem } from '../utils/characterClasses';
+import { useGame } from '../context/GameContext';
 import { Settings, Plus, Edit } from 'lucide-react';
 
 interface SkillMappingRule {
@@ -80,10 +81,31 @@ interface SkillMappingManagerProps {
 }
 
 export const SkillMappingManager: React.FC<SkillMappingManagerProps> = ({ trigger }) => {
+  const { state, actions } = useGame();
   const [open, setOpen] = useState(false);
   const [rules, setRules] = useState<SkillMappingRule[]>(defaultSkillMappingRules);
 
   const availableSkills = SkillChartSystem.getDefaultSkills();
+
+  const testSkillUpdate = () => {
+    console.log('🧪 Testing skill update...');
+    // Simulate completing a daily action
+    actions.updateRepeatableAction('test-action', {
+      id: 'test-action',
+      title: 'Test Action',
+      category: 'health',
+      currentCount: (Date.now() % 100), // Random progress to trigger update
+      targetCount: 5,
+      lastCompletedDate: new Date(),
+      isDaily: true,
+      isWeekly: false,
+      resetDate: new Date(),
+      xpPerCompletion: 10,
+      goldPerCompletion: 5,
+      questId: 'test',
+      description: 'Test description'
+    });
+  };
 
   const toggleRule = (ruleId: string) => {
     setRules(prev => prev.map(rule => 
@@ -191,6 +213,11 @@ export const SkillMappingManager: React.FC<SkillMappingManagerProps> = ({ trigge
             <Plus size={16} className="mr-2" />
             Add Custom Rule
           </Button>
+          {process.env.NODE_ENV === 'development' && (
+            <Button variant="outline" onClick={testSkillUpdate}>
+              🧪 Test Skills
+            </Button>
+          )}
           <Button onClick={() => setOpen(false)}>
             Done
           </Button>
@@ -207,6 +234,24 @@ export const SkillMappingManager: React.FC<SkillMappingManagerProps> = ({ trigge
             <li>• Daily actions update skills based on their category</li>
             <li>• Future updates will allow creating custom rules</li>
           </ul>
+        </div>
+
+        {/* Current Skill Levels */}
+        <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+          <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+            📊 Current Skill Levels
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+            {(state.playerSkills || []).map(skill => (
+              <div key={skill.id} className="flex items-center gap-2">
+                <span>{skill.icon}</span>
+                <span className="capitalize">{skill.name}</span>
+                <span className="text-green-600 dark:text-green-400 font-semibold">
+                  Lv {skill.level}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

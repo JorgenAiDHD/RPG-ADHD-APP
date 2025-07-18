@@ -12,6 +12,8 @@ export const SkillChartRadar: React.FC<SkillChartRadarProps> = ({
   size = 200, 
   className = "" 
 }) => {
+  console.log('📊 SkillChartRadar rendering with skills:', skillChart.skills);
+  
   const { skills } = skillChart;
   
   // Calculate radar chart points
@@ -217,16 +219,29 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
   size = 120, 
   className = "" 
 }) => {
+  console.log('🔷 SkillChartHexagon rendering with skills:', skillChart.skills);
+  
   const topSkills = skillChart.skills
     .sort((a, b) => b.level - a.level)
     .slice(0, 6); // Show top 6 skills in hexagon
   
+  console.log('🔷 Top skills for hexagon:', topSkills);
+  
   const hexagonData = useMemo(() => {
     const angleStep = Math.PI / 3; // 60 degrees for hexagon
-    const maxRadius = size / 2 - 15;
+    const maxRadius = size / 2 - 20;
     const center = size / 2;
     
-    const points = topSkills.map((skill, index) => {
+    // Generate background hexagon points (max radius)
+    const backgroundHexPoints = Array.from({ length: 6 }, (_, index) => {
+      const angle = index * angleStep - Math.PI / 2;
+      const x = center + maxRadius * Math.cos(angle);
+      const y = center + maxRadius * Math.sin(angle);
+      return `${x},${y}`;
+    }).join(' ');
+    
+    // Generate skill level points
+    const skillPoints = topSkills.map((skill, index) => {
       const angle = index * angleStep - Math.PI / 2;
       const normalizedLevel = Math.min(skill.level / 100, 1);
       const radius = maxRadius * normalizedLevel;
@@ -235,9 +250,29 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
       return { x, y, skill };
     });
     
-    const path = points.map(point => `${point.x},${point.y}`).join(' ');
+    // Fill remaining points if we have less than 6 skills
+    while (skillPoints.length < 6) {
+      const index = skillPoints.length;
+      // Center point for empty skills
+      skillPoints.push({ 
+        x: center, 
+        y: center, 
+        skill: { 
+          id: `empty-${index}`, 
+          name: 'Empty', 
+          level: 0, 
+          experience: 0, 
+          maxLevel: 100, 
+          category: 'mental', 
+          icon: '⚪', 
+          description: 'No skill assigned' 
+        } 
+      });
+    }
     
-    return { points, path };
+    const skillPath = skillPoints.map(point => `${point.x},${point.y}`).join(' ');
+    
+    return { skillPoints, skillPath, backgroundHexPoints };
   }, [topSkills, size]);
   
   const getCategoryColor = (category: string): string => {
@@ -256,7 +291,7 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
       <svg width={size} height={size}>
         {/* Background hexagon */}
         <polygon
-          points="60,10 140,10 170,70 140,130 60,130 30,70"
+          points={hexagonData.backgroundHexPoints}
           fill="none"
           stroke="currentColor"
           strokeWidth="1"
@@ -266,7 +301,7 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
         
         {/* Skill area */}
         <polygon
-          points={hexagonData.path}
+          points={hexagonData.skillPath}
           fill="url(#hexGradient)"
           stroke="#3b82f6"
           strokeWidth="2"
@@ -274,16 +309,28 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
         />
         
         {/* Skill points */}
-        {hexagonData.points.map((point, index) => (
-          <circle
-            key={index}
-            cx={point.x}
-            cy={point.y}
-            r="3"
-            fill={getCategoryColor(point.skill.category)}
-            stroke="white"
-            strokeWidth="1"
-          />
+        {hexagonData.skillPoints.map((point, index) => (
+          <g key={index}>
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="3"
+              fill={getCategoryColor(point.skill.category)}
+              stroke="white"
+              strokeWidth="1"
+            />
+            {/* Skill labels */}
+            {point.skill.level > 0 && (
+              <text
+                x={point.x}
+                y={point.y - 8}
+                textAnchor="middle"
+                className="text-xs font-medium fill-current text-gray-600 dark:text-gray-400"
+              >
+                {point.skill.name}
+              </text>
+            )}
+          </g>
         ))}
         
         <defs>
@@ -298,13 +345,20 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center">
           <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-            {skillChart.overallLevel}
+            Lv {skillChart.overallLevel}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Avg Level
+            {topSkills.length} Skills
           </div>
         </div>
       </div>
+      
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-0 left-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded">
+          Skills: {skillChart.skills.length} | Top: {topSkills.length}
+        </div>
+      )}
     </div>
   );
 };

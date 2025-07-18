@@ -22,8 +22,12 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
   const lockedClasses = CharacterClassSystem.getLockedClassesWithProgress(state);
   const activeBonuses = CharacterClassSystem.getActiveBonuses(state);
 
-  const skillChart = state.skillChart || SkillChartSystem.generateSkillChart(state.playerSkills || []);
+  // Always use fresh skill data
+  const skillChart = SkillChartSystem.generateSkillChart(state.playerSkills || []);
   const skillRecommendations = SkillChartSystem.getSkillRecommendations(skillChart);
+  
+  console.log('🎭 CharacterClassDialog rendering with playerSkills:', state.playerSkills);
+  console.log('🎭 Generated skillChart:', skillChart);
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -145,14 +149,14 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
       <div className="flex justify-center mb-6">
         <div className="hidden md:block">
           <SkillChartRadar 
-            key={`radar-${skillChart.skills.map(s => `${s.id}-${s.level}-${s.experience}`).join('-')}`}
+            key={`radar-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
             skillChart={skillChart} 
             size={300} 
           />
         </div>
         <div className="md:hidden">
           <SkillChartHexagon 
-            key={`hex-${skillChart.skills.map(s => `${s.id}-${s.level}-${s.experience}`).join('-')}`}
+            key={`hex-${skillChart.overallLevel}-${skillChart.skills.reduce((acc, s) => acc + s.level + s.experience, 0)}`}
             skillChart={skillChart} 
             size={200} 
           />
