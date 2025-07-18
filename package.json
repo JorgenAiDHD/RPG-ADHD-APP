@@ -14,7 +14,6 @@
     "server": "cd server && npm start"
   },
   "devDependencies": {
-    "@tailwindcss/line-clamp": "^0.4.4",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
