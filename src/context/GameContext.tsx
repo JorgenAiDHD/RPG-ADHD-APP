@@ -653,7 +653,6 @@ function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider value={{ state, actions }}>
       {children}
-      <AIChatbotDialog />
       <ManageHealthActivitiesDialog 
         open={isManageHealthActivitiesOpen} 
         onOpenChange={setManageHealthActivitiesOpen} 

@@ -1,4 +1,5 @@
 import AICompanion from '../components/AICompanion';
+import AIChatbotDialog from '../components/AIChatbotDialog';
 // Główna strona aplikacji, łącząca wszystkie komponenty.
 import { motion } from 'framer-motion';
 import AchievementsDialog from '../components/AchievementsDialog';
@@ -397,6 +398,8 @@ const Index = () => {
         onOpenChange={setShowColorPalette} 
       />
       
+      {/* AI Companion Dialog (tylko jedno okno na stronie głównej) */}
+      <AIChatbotDialog />
     </div>
   );
 };
