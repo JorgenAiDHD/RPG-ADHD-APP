@@ -1,4 +1,4 @@
-import AICompanion from '../components/AICompanion';
+// import AICompanion from '../components/AICompanion';
 import AIChatbotDialog from '../components/AIChatbotDialog';
 // Główna strona aplikacji, łącząca wszystkie komponenty.
 import { motion } from 'framer-motion';
@@ -302,7 +302,7 @@ const Index = () => {
 
         {/* AI Companion */}
         <div className="mt-10 flex justify-center">
-          <AICompanion />
+          {/* <AICompanion /> */}
         </div>
 
         {/* Floating Undo Panel */}
@@ -343,7 +343,7 @@ const Index = () => {
       
       {/* Floating Components & Dialogs */}
       <ChallengeTimer />
-      <AICompanion />
+      {/* <AICompanion /> */}
       
       {/* UX/UI Enhancement Dialogs */}
       {showBrainTraining && (

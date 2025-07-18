@@ -12,7 +12,6 @@ import { RepeatableActionsSystem } from '../utils/repeatableActions';
 import { SkillChartSystem } from '../utils/characterClasses';
 import { InnerRealmSystem } from '../utils/innerRealmSystem';
 import { MoodEnvironmentEngine } from '../utils/moodEnvironmentEngine';
-import AIChatbotDialog from '../components/AIChatbotDialog';
 import ManageHealthActivitiesDialog from '../components/ManageHealthActivitiesDialog';
 
 import type { PlayerAction } from '../reducers/playerReducer';
