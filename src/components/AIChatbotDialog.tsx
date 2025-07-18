@@ -14,6 +14,14 @@ const AIChatbotDialog = () => {
     }
   }, [state.aiChatHistory]);
 
+  const getApiUrl = (endpoint: string) => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `http://localhost:3001${endpoint}`;
+    }
+    // production: relative path (proxy or same domain)
+    return endpoint;
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
     setSending(true);
@@ -25,7 +33,7 @@ const AIChatbotDialog = () => {
     setInput('');
     // Wywołanie backendu AI
     try {
-      const res = await fetch('/chat', {
+      const res = await fetch(getApiUrl('/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input, gameState: state, history: state.aiChatHistory }),
