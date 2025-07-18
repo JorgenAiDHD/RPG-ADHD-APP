@@ -1,8 +1,9 @@
 # Changelog
 
-## [v0.1] - 2025-07-17 - Stable Release
+## [v0.1] - 2025-07-17 - Stable Release (Details)
 
 ### ✅ Completed Features
+
 - **Full-stack ADHD-friendly RPG Quest Log**
 - **Frontend**: React/Vite deployed on GitHub Pages
 - **Backend**: Node.js/Express deployed on Railway (24/7 cloud operation)
@@ -18,6 +19,7 @@
   - Dark/light theme support
 
 ### 🔧 Technical Improvements
+
 - **CORS**: Robust configuration for all domains/devices
 - **Environment Variables**: Secure API key management
 - **Deployment**: Automated GitHub Actions for frontend
@@ -25,11 +27,13 @@
 - **Mobile**: Fully responsive design for PC and mobile
 
 ### 🌐 Cloud Infrastructure
-- **Frontend**: https://jorgenaidhd.github.io/RPG-ADHD-APP/
-- **Backend**: https://rpg-adhd-app-production.up.railway.app/
+
+- **Frontend**: [https://jorgenaidhd.github.io/RPG-ADHD-APP/](https://jorgenaidhd.github.io/RPG-ADHD-APP/)
+- **Backend**: [https://rpg-adhd-app-production.up.railway.app/](https://rpg-adhd-app-production.up.railway.app/)
 - **24/7 Operation**: No need for local servers
 
 ### 🧠 ADHD-Friendly Features
+
 - Micro-tasks and quick wins
 - Visual progress tracking
 - Motivational AI responses
@@ -44,6 +48,7 @@
 ### ✅ UKOŃCZONE - Sekcje v0.2
 
 #### 🎯 Health & Energy System Redesign - UKOŃCZONE ✅
+
 - **Energy-only bars** (remove confusing dual health bars) ✅
 - **Mood tracking** with questions: "Ile spałeś?", "Jak się czujesz?" ✅
 - **Daily energy rating** (1-5 stars visualization: ⭐ = exhausted, ⭐⭐⭐⭐⭐ = super power) ✅
@@ -53,6 +58,7 @@
 - **Comprehensive EnergyMoodTracker component** with star ratings and mood tracking ✅
 
 #### 🎮 Quest System Overhaul - UKOŃCZONE ✅
+
 - **Separate Main Quest vs Active Quest** management ✅
 - **Better quest categorization** and editing capabilities ✅
 - **EditableMainQuest component** with inline editing ✅
@@ -61,6 +67,7 @@
 - **UndoSystem utility** with time-based expiration ✅
 
 #### 🎭 Character Classes & Stats - UKOŃCZONE ✅
+
 - **Dynamic character classes** based on achievements:
   - 🧘 **Monk** (meditation master) ✅
   - 🧙 **Alchemist/Mage** (learning: math, physics, chemistry) ✅
@@ -73,6 +80,7 @@
 - **SkillChartRadar** component for visual skill representation ✅
 
 #### 🏆 Super Quests & Challenges - UKOŃCZONE ✅
+
 - **Mind control challenges**: "Stand on one leg with eyes closed" (ADHD exercises) ✅
 - **Creative quests**: "Draw [random word] + [random word] combination" ✅
 - **Memory games**: 3 word associations, logic puzzles ✅
@@ -88,6 +96,7 @@
 #### 🎨 UX/UI Enhancements - UKOŃCZONE ✅
 
 ##### 🎭 Motivational Content Integration - UKOŃCZONE ✅
+
 - **Inspirational quotes system** between sections ✅
   - **Jim Kwik quotes** (brain training & learning) 📚 ✅
   - **James Clear quotes** (habits & systems) � ✅
@@ -101,6 +110,7 @@
   - **Auto-refresh functionality** with customizable intervals ✅
 
 ##### 🧠 Interactive Brain Training - UKOŃCZONE ✅
+
 - **BrainTrainingQuizComponent** with ADHD-optimized challenges ✅
   - **Memory sequence challenges** 🧩 ✅
   - **Attention focus training** 👁️ ✅
@@ -113,6 +123,7 @@
 - **ADHD benefits explanations** for each exercise type ✅
 
 ##### 🎵 Audio Wellness Integration - UKOŃCZONE ✅
+
 - **AudioWellnessDialog** with comprehensive sound library ✅
   - **Nature sounds** (rain, ocean waves) 🌊 ✅
   - **Focus music** (Lo-Fi, study beats) 🎵 ✅
@@ -125,6 +136,7 @@
 - **Search and categorization** for easy audio discovery ✅
 
 ##### � Enhanced Achievements System - UKOŃCZONE ✅
+
 - **ADHD-specific achievements** 🧠
   - **Hyperfocus Hero** (2+ hour focus sessions) 🌊 ✅
   - **Quick Pivot Master** (cognitive flexibility celebration) 🔄 ✅
@@ -145,6 +157,7 @@
   - **Sensory Strategist** (environment optimization) 🎯 ✅
 
 ##### 📈 First 10 Levels Enhanced - UKOŃCZONE ✅
+
 - **Level-specific achievements** with ADHD tips and insights ✅
   - **Level 1**: First Steps (confidence building) 🌱 ✅
   - **Level 2**: Momentum Builder (executive function) ⚡ ✅
@@ -161,6 +174,7 @@
 - **Achievement notification system** with queuing and management ✅
 
 ##### ⚡ Focus Timer Enhancements - ALREADY OPTIMIZED ✅
+
 - **ADHD-optimized default timings** (15-20 min instead of 25 min) ✅
 - **Multiple session length options** for different ADHD needs ✅
 - **Break reminders** and session analytics ✅
@@ -170,7 +184,7 @@
 
 ## 🎯 v0.2 IMPLEMENTATION STATUS: COMPLETED ✅
 
-### ✅ ALL v0.2 SECTIONS SUCCESSFULLY IMPLEMENTED:
+### ✅ ALL v0.2 SECTIONS SUCCESSFULLY IMPLEMENTED
 
 1. **🎯 Health & Energy System Redesign** - COMPLETED ✅
 2. **🎮 Quest System Overhaul** - COMPLETED ✅  
@@ -199,6 +213,7 @@ All major v0.2 features have been successfully implemented and integrated into t
 ### 🎯 Core System Improvements
 
 #### Health & Energy System Redesign
+
 - **Energy-only bars** (remove confusing dual health bars)
 - **Mood tracking** with questions: "Ile spałeś?", "Jak się czujesz?"
 - **Daily energy rating** (1-5 stars visualization: ⭐ = exhausted, ⭐⭐⭐⭐⭐ = super power)
@@ -207,12 +222,14 @@ All major v0.2 features have been successfully implemented and integrated into t
 - **Better labeling**: "Done" ✓ button instead of "use"
 
 #### Streak System Enhancement
+
 - **Visual streak chart** (mini progress visualization)
 - **Motivational quotes** during streak building (Jim Kwik, James Clear, Tim Ferriss, etc.)
 - **Streak milestone rewards** and customizable streak goals
 - **Practice makes progress** philosophy integration
 
 #### Quest System Overhaul
+
 - **Separate Main Quest vs Active Quest** management
 - **Better quest categorization** and editing capabilities
 - **Repeatable action counters** (e.g., meditated 3x today, not 3 separate entries)
@@ -222,6 +239,7 @@ All major v0.2 features have been successfully implemented and integrated into t
 ### 🎮 RPG Elements Expansion
 
 #### Character Classes & Stats
+
 - **Dynamic character classes** based on achievements:
   - 🧘 **Monk** (meditation master)
   - 🧙 **Alchemist/Mage** (learning: math, physics, chemistry)
@@ -232,6 +250,7 @@ All major v0.2 features have been successfully implemented and integrated into t
   - **User-customizable** stats system
 
 #### Super Quests & Challenges
+
 - **Mind control challenges**: "Stand on one leg with eyes closed" (ADHD exercises)
 - **Creative quests**: "Draw [random word] + [random word] combination"
 - **Memory games**: 3 word associations, logic puzzles
@@ -241,18 +260,21 @@ All major v0.2 features have been successfully implemented and integrated into t
 ### 📊 Enhanced Tracking & Analytics
 
 #### Multi-Journal System
+
 - **Gratitude journal** 🙏
-- **Good deeds log** ❤️ 
+- **Good deeds log** ❤️
 - **Savings tracker** 💰
 - **Ideas & plans notebook** 💡
 
 #### Super Challenges & Streaks
+
 - **No-sugar challenge** 🍭❌
 - **No-alcohol streak** 🍺❌
 - **No-processed food** 🍟❌
 - **Other customizable challenges** with day counters and rewards
 
 #### History & Statistics
+
 - **Smart activity grouping** (3x meditation = 1 entry with counter)
 - **Undo/edit functionality** for mistakes
 - **Progress analytics** to identify strengths and weaknesses
@@ -261,26 +283,26 @@ All major v0.2 features have been successfully implemented and integrated into t
 ### 🎨 UX/UI Enhancements
 
 #### Motivational Content Integration
+
 - **Inspirational quotes** between sections (Jim Kwik, James Clear, Cal Newport, etc.)
 - **Interactive quizzes** and brain training
 - **Music integration**: Nature sounds, focus music (Mynoise, Spotify, YouTube Music)
 - **Visual progress indicators** and celebrations
 
 #### Focus Timer Fixes
+
 - **Correct default timing** (15-20 min suggestions, not 25 min auto-set)
 - **ADHD-optimized** session lengths
 - **Break reminders** and session analytics
 
 #### Enhanced Achievements System
+
 - **ADHD-specific achievements** 🧠
 - **Gamer achievements** 🎮
 - **Athlete milestones** 🏃‍♂️
 - **Developer goals** 💻
 - **Autism-friendly targets** 🌟
 - **First 10 levels**: Notifications + tips + progress analysis each level
-
-### 🎵 Multimedia & Wellness
-
 
 ### 🎵 Multimedia & Wellness
 

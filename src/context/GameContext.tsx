@@ -21,18 +21,9 @@ import type { HealthAction } from '../reducers/healthReducer';
 import type { CollectiblesAction } from '../reducers/collectiblesReducer';
 import type { GeneralAction } from '../reducers/generalReducer';
 import { analyticsReducer, type AnalyticsAction } from '../reducers/analyticsReducer';
+import type { GameAction } from '../types/game';
 
 // Główny reducer, który deleguje akcje do mniejszych reducerów
-// Definicja wszystkich możliwych akcji w grze
-type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | AnalyticsAction | RepeatableActionsAction |
-  { type: 'REMOVE_QUEST'; payload: string } |
-  // v0.3 Inner Realms Actions
-  { type: 'UPDATE_MOOD_ENVIRONMENT'; payload: { mood: number; emotion: EmotionRealm['emotionType'] } } |
-  { type: 'SELECT_REALM'; payload: string } |
-  { type: 'UPDATE_REALM_INTENSITY'; payload: { realmId: string; activity: string; duration?: number } } |
-  { type: 'TRIGGER_REALM_EVENT'; payload: { realmId: string; eventId: string } } |
-  { type: 'UNLOCK_NARRATIVE'; payload: { realmId: string; narrativeId: string } };
-
 
 const initialState: GameState = {
   player: {
@@ -206,9 +197,24 @@ const initialState: GameState = {
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
+  const MOTIVATIONAL_QUOTES = [
+    'You are capable of amazing things!',
+    'Small steps every day lead to big results.',
+    'Progress, not perfection!',
+    'You can do hard things.',
+    'Stay curious, stay motivated!',
+    'Your effort matters more than you think.',
+    'Celebrate every win, no matter how small.'
+  ];
   let updates: Partial<GameState> = {};
 
   switch (action.type) {
+    case 'TOGGLE_COLORBLIND_MODE':
+      return { ...state, colorblindMode: !state.colorblindMode };
+    case 'TOGGLE_LARGE_FONT':
+      return { ...state, largeFont: !state.largeFont };
+    case 'SHOW_MOTIVATIONAL_QUOTE':
+      return { ...state, lastMotivationalQuote: MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)] };
     case 'UPDATE_STREAK':
     case 'ADD_XP':
     case 'ACTIVATE_BONUS_XP':
@@ -263,7 +269,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       updates = {
         currentRealmState: InnerRealmSystem.generateMoodEnvironmentSync(
           action.payload.mood,
-          action.payload.emotion,
+          action.payload.emotion as import('../types/game').EmotionRealm['emotionType'],
           state.emotionRealms
         )
       };
@@ -374,7 +380,6 @@ interface GameContextType {
   state: GameState;
   actions: {
     completeQuest: (questId: string) => void;
-    removeQuest: (questId: string) => void;
     addXP: (xpGain: XPGain) => void;
     addQuest: (quest: Quest) => void;
     editQuest: (quest: Quest) => void;
@@ -426,6 +431,11 @@ interface GameContextType {
     updateRepeatableAction: (actionId: string, updates: any) => void;
     addRepeatableAction: (action: any) => void;
     removeRepeatableAction: (actionId: string) => void;
+
+    // ADHD-friendly quick actions
+    toggleColorblindMode: () => void;
+    toggleLargeFont: () => void;
+    showMotivationalQuote: () => void;
   };
 }
 
@@ -557,9 +567,11 @@ function GameProvider({ children }: { children: ReactNode }) {
   }, [state.player.level, state.statistics.totalQuestsCompleted, state.player.longestStreak, state.collectibles.length, state.statistics.healthActivitiesLogged, state.unlockedAchievements]);
 
   const actions = {
+    toggleColorblindMode: () => dispatch({ type: 'TOGGLE_COLORBLIND_MODE' }),
+    toggleLargeFont: () => dispatch({ type: 'TOGGLE_LARGE_FONT' }),
+    showMotivationalQuote: () => dispatch({ type: 'SHOW_MOTIVATIONAL_QUOTE' }),
     editQuest: (quest: Quest) => dispatch({ type: 'EDIT_QUEST', payload: quest }),
     completeQuest: (questId: string) => dispatch({ type: 'COMPLETE_QUEST', payload: questId }),
-    removeQuest: (questId: string) => dispatch({ type: 'REMOVE_QUEST', payload: questId }),
     addXP: (xpGain: XPGain) => dispatch({ type: 'ADD_XP', payload: xpGain }),
     addQuest: (quest: Quest) => dispatch({ type: 'ADD_QUEST', payload: quest }),
     updateHealth: (change: number, activity?: HealthActivity) => dispatch({ type: 'UPDATE_HEALTH', payload: { change, activity } }),

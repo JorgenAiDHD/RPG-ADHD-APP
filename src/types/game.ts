@@ -6,10 +6,41 @@ import type { CollectiblesAction } from '../reducers/collectiblesReducer';
 import type { GeneralAction } from '../reducers/generalReducer';
 import type { RepeatableActionsAction } from '../reducers/repeatableActionsReducer';
 
-export type GameAction = PlayerAction | QuestAction | HealthAction | CollectiblesAction | GeneralAction | RepeatableActionsAction;
+export type GameAction =
+  // Player actions
+  PlayerAction
+  // Quest actions
+  | QuestAction
+  // Health actions
+  | HealthAction
+  // Collectibles actions
+  | CollectiblesAction
+  // General actions
+  | GeneralAction
+  // Repeatable actions
+  | RepeatableActionsAction
+  // Analytics actions (journals, streak challenges)
+  | { type: 'ADD_JOURNAL_ENTRY'; payload: { journalId: string; entry: any } }
+  | { type: 'INITIALIZE_JOURNALS' }
+  | { type: 'ADD_STREAK_CHALLENGE'; payload: any }
+  | { type: 'UPDATE_STREAK_CHALLENGE'; payload: { challengeId: string; updates: any } }
+  // Inner Realms Expansion v0.3
+  | { type: 'UPDATE_MOOD_ENVIRONMENT'; payload: { mood: number; emotion: import('./game').EmotionRealm['emotionType'] } }
+  | { type: 'SELECT_REALM'; payload: string }
+  | { type: 'UPDATE_REALM_INTENSITY'; payload: { realmId: string; activity: string; duration?: number } }
+  | { type: 'TRIGGER_REALM_EVENT'; payload: { realmId: string; eventId: string } }
+  | { type: 'UNLOCK_NARRATIVE'; payload: { realmId: string; narrativeId: string } }
+  // ADHD-friendly quick actions
+  | { type: 'TOGGLE_COLORBLIND_MODE' }
+  | { type: 'TOGGLE_LARGE_FONT' }
+  | { type: 'SHOW_MOTIVATIONAL_QUOTE' };
 
 export interface GameContextType {
-  state: GameState;
+  state: GameState & {
+    colorblindMode?: boolean;
+    largeFont?: boolean;
+    lastMotivationalQuote?: string;
+  };
   dispatch: React.Dispatch<GameAction>;
 }
 // Definicje typów dla całej aplikacji.
@@ -308,6 +339,9 @@ export interface HabitBoss {
 }
 
 export interface GameState {
+  colorblindMode?: boolean;
+  largeFont?: boolean;
+  lastMotivationalQuote?: string;
   player: Player;
   mainQuest: MainQuest;
   activeQuestId?: string | null; // New: ID of currently active quest

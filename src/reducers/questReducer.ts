@@ -9,7 +9,8 @@ export type QuestAction =
   | { type: 'ADD_QUEST'; payload: Quest }
   | { type: 'EDIT_QUEST'; payload: Quest }
   | { type: 'SET_MAIN_QUEST'; payload: { title: string; description: string } }
-  | { type: 'SET_ACTIVE_QUEST'; payload: string | null }; // Nowa akcja do ustawiania aktywnego zadania
+  | { type: 'SET_ACTIVE_QUEST'; payload: string | null }
+  | { type: 'REMOVE_QUEST'; payload: string }; // Nowa akcja do ustawiania aktywnego zadania
 
 export function questReducer(state: GameState, action: QuestAction): Partial<GameState> {
   switch (action.type) {

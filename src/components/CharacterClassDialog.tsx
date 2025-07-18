@@ -15,6 +15,7 @@ interface CharacterClassDialogProps {
 
 export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trigger }) => {
   const { state } = useGame();
+  const { actions } = useGame();
   const [activeTab, setActiveTab] = useState<'classes' | 'skills'>('classes');
 
   const currentClass = CharacterClassSystem.getCurrentClass(state);
@@ -144,7 +145,22 @@ export const CharacterClassDialog: React.FC<CharacterClassDialogProps> = ({ trig
   };
 
   const renderSkillChart = () => (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${state.colorblindMode ? 'colorblind' : ''} ${state.largeFont ? 'text-lg' : ''}`}>
+      {/* ADHD Quick Toggles */}
+      <div className="flex flex-wrap gap-3 justify-center mb-2">
+        <button onClick={actions.toggleColorblindMode} className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 border border-blue-300">
+          {state.colorblindMode ? 'Disable' : 'Enable'} Colorblind Mode
+        </button>
+        <button onClick={actions.toggleLargeFont} className="px-3 py-1 rounded bg-green-100 hover:bg-green-200 border border-green-300">
+          {state.largeFont ? 'Normal Font' : 'Large Font'}
+        </button>
+        <button onClick={actions.showMotivationalQuote} className="px-3 py-1 rounded bg-yellow-100 hover:bg-yellow-200 border border-yellow-300">
+          Motivation
+        </button>
+      </div>
+      {state.lastMotivationalQuote && (
+        <div className="text-center text-yellow-700 font-semibold mb-2">{state.lastMotivationalQuote}</div>
+      )}
       {/* Skill Chart Radar & Hexagon - Always visible */}
       <div className="flex flex-col items-center gap-6 mb-6">
         <SkillChartRadar 
