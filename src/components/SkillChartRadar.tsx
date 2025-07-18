@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import type { SkillChart } from '../types/game';
+import { useGame } from '../context/GameContext';
+import { SkillChartSystem } from '../utils/characterClasses';
 
 interface SkillChartRadarProps {
   skillChart: SkillChart;
@@ -227,136 +229,458 @@ export const SkillChartHexagon: React.FC<SkillChartRadarProps> = ({
   
   console.log('🔷 Top skills for hexagon:', topSkills);
   
+  const { state: gameState } = useGame();
+  
   const hexagonData = useMemo(() => {
     const angleStep = Math.PI / 3; // 60 degrees for hexagon
-    const maxRadius = size / 2 - 20;
+    const maxRadius = size / 2 - 30;
     const center = size / 2;
     
-    // Generate background hexagon points (max radius)
-    const backgroundHexPoints = Array.from({ length: 6 }, (_, index) => {
-      const angle = index * angleStep - Math.PI / 2;
-      const x = center + maxRadius * Math.cos(angle);
-      const y = center + maxRadius * Math.sin(angle);
-      return `${x},${y}`;
-    }).join(' ');
-    
-    // Generate skill level points
-    const skillPoints = topSkills.map((skill, index) => {
-      const angle = index * angleStep - Math.PI / 2;
-      const normalizedLevel = Math.min(skill.level / 100, 1);
-      const radius = maxRadius * normalizedLevel;
-      const x = center + radius * Math.cos(angle);
-      const y = center + radius * Math.sin(angle);
-      return { x, y, skill };
-    });
-    
-    // Fill remaining points if we have less than 6 skills
-    while (skillPoints.length < 6) {
-      const index = skillPoints.length;
-      // Center point for empty skills
-      skillPoints.push({ 
-        x: center, 
-        y: center, 
-        skill: { 
-          id: `empty-${index}`, 
-          name: 'Empty', 
-          level: 0, 
-          experience: 0, 
-          maxLevel: 100, 
-          category: 'mental', 
-          icon: '⚪', 
-          description: 'No skill assigned' 
-        } 
+    // Ensure we have exactly 6 skills for hexagon
+    const hexSkills = [...topSkills];
+    while (hexSkills.length < 6) {
+      hexSkills.push({ 
+        id: `empty-${hexSkills.length}`, 
+        name: 'Empty', 
+        level: 0, 
+        experience: 0, 
+        maxLevel: 100, 
+        category: 'mental', 
+        icon: '⚪', 
+        description: 'No skill assigned' 
       });
     }
+    const skillsToShow = hexSkills.slice(0, 6);
     
-    const skillPath = skillPoints.map(point => `${point.x},${point.y}`).join(' ');
+    // Calculate REAL progress based on completed quests and activities
+    const calculateSkillProgress = (skill: any): number => {
+      // Base progress from experience
+      const baseProgress = Math.min(100, (skill.experience / SkillChartSystem.getRequiredXPForLevel(skill.level + 1)) * 100);
+      
+      // Enhanced progress calculation based on actual activities
+      let activityBonus = 0;
+      const recentActivities = gameState.recentActivity || [];
+      const completedQuests = gameState.quests?.filter((q: any) => q.status === 'completed') || [];
+      const healthActivities = gameState.customHealthActivities || [];
+      
+      // Count skill-relevant activities for last 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const recentRelevantActivities = recentActivities.filter((a: any) => 
+        new Date(a.timestamp) > thirtyDaysAgo
+      );
+      
+      // Skill-specific progress calculation
+      switch (skill.id) {
+        case 'focus':
+          activityBonus += recentRelevantActivities.filter((a: any) => 
+            a.description.toLowerCase().includes('focus') || 
+            a.description.toLowerCase().includes('concentrate') ||
+            a.description.toLowerCase().includes('meditation') ||
+            a.type === 'focus_session'
+          ).length * 3;
+          break;
+        
+        case 'exercise':
+          activityBonus += recentRelevantActivities.filter((a: any) => 
+            a.description.toLowerCase().includes('exercise') || 
+            a.description.toLowerCase().includes('workout') ||
+            a.description.toLowerCase().includes('physical') ||
+            a.type === 'health_activity'
+          ).length * 4;
+          activityBonus += healthActivities.filter((h: any) => h.category === 'physical').length * 3;
+          break;
+        
+        case 'learning':
+          activityBonus += completedQuests.filter((q: any) => 
+            q.category === 'learning' || 
+            q.tags?.includes('education') ||
+            q.tags?.includes('skill development') ||
+            q.tags?.includes('reading')
+          ).length * 5;
+          break;
+        
+        case 'creativity':
+          activityBonus += completedQuests.filter((q: any) => 
+            q.category === 'creative' || 
+            q.tags?.includes('creative') ||
+            q.tags?.includes('art') ||
+            q.tags?.includes('design')
+          ).length * 6;
+          break;
+        
+        case 'social':
+          activityBonus += completedQuests.filter((q: any) => 
+            q.category === 'social' || 
+            q.tags?.includes('communication') ||
+            q.tags?.includes('networking') ||
+            q.tags?.includes('relationship')
+          ).length * 4;
+          break;
+        
+        case 'organization':
+          activityBonus += completedQuests.filter((q: any) => 
+            q.category === 'work' || q.category === 'personal' ||
+            q.tags?.includes('planning') ||
+            q.tags?.includes('organization') ||
+            q.tags?.includes('productivity')
+          ).length * 3;
+          // Bonus for completing quests on time
+          activityBonus += completedQuests.filter((q: any) => 
+            q.estimatedTime && q.estimatedTime <= 30
+          ).length * 2;
+          break;
+        
+        case 'meditation':
+          activityBonus += recentRelevantActivities.filter((a: any) => 
+            a.description.toLowerCase().includes('meditat') || 
+            a.description.toLowerCase().includes('mindful') ||
+            a.description.toLowerCase().includes('breathing')
+          ).length * 5;
+          activityBonus += healthActivities.filter((h: any) => 
+            h.category === 'mental' && h.name.toLowerCase().includes('meditat')
+          ).length * 4;
+          break;
+        
+        case 'resilience':
+          // Big bonus for completing difficult tasks
+          activityBonus += completedQuests.filter((q: any) => 
+            q.difficultyLevel >= 4 || 
+            q.anxietyLevel === 'daunting' ||
+            q.priority === 'urgent'
+          ).length * 8;
+          // Bonus for maintaining streaks
+          activityBonus += Math.min(20, gameState.player?.currentStreak || 0);
+          break;
+      }
+      
+      // Additional bonuses based on overall player progress
+      const playerLevel = gameState.player?.level || 1;
+      const levelBonus = Math.min(15, playerLevel * 0.5);
+      
+      // Cap the total progress at 100%
+      const totalProgress = Math.min(100, baseProgress + activityBonus + levelBonus);
+      return Math.max(8, totalProgress); // Minimum 8% for visibility
+    };
+
+    // Get detailed progress information for tooltips
+    const getSkillProgressDetails = (skill: any) => {
+      const completedQuests = gameState.quests?.filter((q: any) => q.status === 'completed') || [];
+      const totalQuests = gameState.quests?.length || 1;
+      const questCompletionRate = Math.round((completedQuests.length / totalQuests) * 100);
+      
+      const skillRelevantQuests = completedQuests.filter((q: any) => {
+        const category = q.category?.toLowerCase() || '';
+        const tags = q.tags?.join(' ').toLowerCase() || '';
+        const skillKeywords = getSkillKeywords(skill.id);
+        
+        return skillKeywords.some(keyword => 
+          category.includes(keyword) || tags.includes(keyword)
+        );
+      });
+      
+      return {
+        relevantQuests: skillRelevantQuests.length,
+        totalQuests: completedQuests.length,
+        questCompletionRate,
+        currentLevel: skill.level,
+        experience: skill.experience,
+        experienceNeeded: SkillChartSystem.getRequiredXPForLevel(skill.level + 1),
+        realProgress: calculateSkillProgress(skill)
+      };
+    };
+
+    // Get keywords for skill matching
+    const getSkillKeywords = (skillId: string): string[] => {
+      const keywordMap: Record<string, string[]> = {
+        'focus': ['focus', 'concentrate', 'attention', 'meditation'],
+        'exercise': ['exercise', 'workout', 'physical', 'fitness', 'health'],
+        'learning': ['learning', 'education', 'study', 'skill', 'knowledge', 'reading'],
+        'creativity': ['creative', 'art', 'design', 'innovation', 'artistic'],
+        'social': ['social', 'communication', 'networking', 'relationship'],
+        'organization': ['organization', 'planning', 'management', 'productivity'],
+        'meditation': ['meditation', 'mindful', 'mental', 'relaxation'],
+        'resilience': ['challenge', 'difficult', 'stress', 'overcome']
+      };
+      return keywordMap[skillId] || [];
+    };
     
-    return { skillPoints, skillPath, backgroundHexPoints };
-  }, [topSkills, size]);
-  
-  const getCategoryColor = (category: string): string => {
-    switch (category) {
-      case 'physical': return '#ef4444';
-      case 'mental': return '#3b82f6';
-      case 'social': return '#10b981';
-      case 'creative': return '#8b5cf6';
-      case 'technical': return '#f59e0b';
-      default: return '#6b7280';
-    }
+    // Generate hexagon triangular segments with ENHANCED PROGRESS
+    const triangularSegments = skillsToShow.map((skill, index) => {
+      const startAngle = index * angleStep - Math.PI / 2;
+      const endAngle = (index + 1) * angleStep - Math.PI / 2;
+      
+      // Calculate REAL progress percentage (0-100)
+      const realProgressPercent = calculateSkillProgress(skill);
+      const progressRadius = maxRadius * (realProgressPercent / 100);
+      
+      // Get detailed progress information
+      const progressDetails = getSkillProgressDetails(skill);
+      
+      // Points for the triangular segment
+      const outerStart = {
+        x: center + maxRadius * Math.cos(startAngle),
+        y: center + maxRadius * Math.sin(startAngle)
+      };
+      const outerEnd = {
+        x: center + maxRadius * Math.cos(endAngle),
+        y: center + maxRadius * Math.sin(endAngle)
+      };
+      const progressStart = {
+        x: center + progressRadius * Math.cos(startAngle),
+        y: center + progressRadius * Math.sin(startAngle)
+      };
+      const progressEnd = {
+        x: center + progressRadius * Math.cos(endAngle),
+        y: center + progressRadius * Math.sin(endAngle)
+      };
+      
+      // Label position (at 85% of max radius for better visibility)
+      const labelAngle = startAngle + angleStep / 2;
+      const labelRadius = maxRadius * 0.85;
+      const labelPos = {
+        x: center + labelRadius * Math.cos(labelAngle),
+        y: center + labelRadius * Math.sin(labelAngle)
+      };
+      
+      return {
+        skill: {
+          ...skill,
+          realProgress: realProgressPercent,
+          progressDetails
+        },
+        index,
+        // Background triangle (full size)
+        backgroundPath: `M ${center},${center} L ${outerStart.x},${outerStart.y} L ${outerEnd.x},${outerEnd.y} Z`,
+        // Progress triangle (REAL skill progress)
+        progressPath: `M ${center},${center} L ${progressStart.x},${progressStart.y} L ${progressEnd.x},${progressEnd.y} Z`,
+        // Outline for the full triangle
+        outlinePath: `M ${center},${center} L ${outerStart.x},${outerStart.y} L ${outerEnd.x},${outerEnd.y} Z`,
+        labelPos,
+        progressRadius,
+        maxRadius,
+        realProgressPercent
+      };
+    });
+    
+    return { triangularSegments };
+  }, [topSkills, size, gameState]);
+
+  const getProgressColor = (level: number): string => {
+    if (level >= 80) return '#10b981'; // Green for high levels
+    if (level >= 60) return '#3b82f6'; // Blue for good levels  
+    if (level >= 40) return '#f59e0b'; // Orange for medium levels
+    if (level >= 20) return '#eab308'; // Yellow for low levels
+    return '#6b7280'; // Gray for very low levels
+  };
+
+  const getProgressIntensity = (progress: number): number => {
+    return Math.max(0.3, Math.min(1.0, progress / 100));
   };
 
   return (
     <div className={`relative ${className}`}>
       <svg width={size} height={size}>
-        {/* Background hexagon */}
-        <polygon
-          points={hexagonData.backgroundHexPoints}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1"
-          className="text-gray-200 dark:text-gray-700"
-          opacity={0.3}
-        />
-        
-        {/* Skill area */}
-        <polygon
-          points={hexagonData.skillPath}
-          fill="url(#hexGradient)"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          opacity={0.6}
-        />
-        
-        {/* Skill points */}
-        {hexagonData.skillPoints.map((point, index) => (
+        <defs>
+          {/* Enhanced gradients for each segment */}
+          {hexagonData.triangularSegments.map((segment, index) => (
+            <radialGradient key={index} id={`skillGradient-${index}`} cx="30%" cy="30%" r="70%">
+              <stop 
+                offset="0%" 
+                stopColor={getProgressColor(segment.realProgressPercent)} 
+                stopOpacity="0.8" 
+              />
+              <stop 
+                offset="70%" 
+                stopColor={getProgressColor(segment.realProgressPercent)} 
+                stopOpacity="0.6" 
+              />
+              <stop 
+                offset="100%" 
+                stopColor={getProgressColor(segment.realProgressPercent)} 
+                stopOpacity="0.3" 
+              />
+            </radialGradient>
+          ))}
+          
+          {/* Glow effect for high-progress skills */}
+          <filter id="skillGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge> 
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          
+          {/* Subtle animation for progress indicators */}
+          <filter id="progressPulse" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge> 
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Render triangular segments with ENHANCED VISUALIZATION */}
+        {hexagonData.triangularSegments.map((segment, index) => (
           <g key={index}>
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="3"
-              fill={getCategoryColor(point.skill.category)}
-              stroke="white"
-              strokeWidth="1"
+            {/* Background triangle (outline) */}
+            <path
+              d={segment.backgroundPath}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-gray-400 dark:text-gray-500"
+              opacity={0.4}
             />
-            {/* Skill labels */}
-            {point.skill.level > 0 && (
-              <text
-                x={point.x}
-                y={point.y - 8}
-                textAnchor="middle"
-                className="text-xs font-medium fill-current text-gray-600 dark:text-gray-400"
-              >
-                {point.skill.name}
-              </text>
+            
+            {/* Progress triangle (filled based on REAL skill progress) */}
+            {segment.realProgressPercent > 8 && (
+              <path
+                d={segment.progressPath}
+                fill={`url(#skillGradient-${index})`}
+                stroke={getProgressColor(segment.realProgressPercent)}
+                strokeWidth="1.5"
+                opacity={getProgressIntensity(segment.realProgressPercent)}
+                className="transition-all duration-500 ease-in-out"
+              />
+            )}
+            
+            {/* Progress indicator ring (shows percentage) */}
+            {segment.realProgressPercent > 15 && (
+              <circle
+                cx={segment.labelPos.x}
+                cy={segment.labelPos.y}
+                r="3"
+                fill={getProgressColor(segment.realProgressPercent)}
+                stroke="white"
+                strokeWidth="1"
+                className="drop-shadow-sm"
+              />
+            )}
+            
+            {/* Skill label and progress info */}
+            {segment.skill.level > 0 && (
+              <g className="pointer-events-none">
+                {/* Skill icon and name */}
+                <text
+                  x={segment.labelPos.x}
+                  y={segment.labelPos.y - 12}
+                  textAnchor="middle"
+                  className="text-xs font-bold fill-current text-gray-800 dark:text-gray-200"
+                >
+                  {segment.skill.icon}
+                </text>
+                <text
+                  x={segment.labelPos.x}
+                  y={segment.labelPos.y - 2}
+                  textAnchor="middle"
+                  className="text-xs font-semibold fill-current text-gray-700 dark:text-gray-300"
+                >
+                  {segment.skill.name}
+                </text>
+                
+                {/* Progress percentage and level */}
+                <text
+                  x={segment.labelPos.x}
+                  y={segment.labelPos.y + 8}
+                  textAnchor="middle"
+                  className="text-xs font-bold fill-current"
+                  fill={getProgressColor(segment.realProgressPercent)}
+                >
+                  {Math.round(segment.realProgressPercent)}%
+                </text>
+                <text
+                  x={segment.labelPos.x}
+                  y={segment.labelPos.y + 18}
+                  textAnchor="middle"
+                  className="text-xs font-medium fill-current text-gray-600 dark:text-gray-400"
+                >
+                  Lv {segment.skill.level}
+                </text>
+              </g>
             )}
           </g>
         ))}
+
+        {/* Enhanced center circle with progress info */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r="25"
+          fill="white"
+          stroke="#3b82f6"
+          strokeWidth="3"
+          className="drop-shadow-lg"
+          filter="url(#skillGlow)"
+        />
         
-        <defs>
-          <radialGradient id="hexGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#1e40af" stopOpacity="0.1" />
-          </radialGradient>
-        </defs>
-      </svg>
-      
-      {/* Center display */}
+        {/* Center text with overall progress */}
+        <text
+          x={size / 2}
+          y={size / 2 - 8}
+          textAnchor="middle"
+          className="text-sm font-bold fill-current text-blue-600 dark:text-blue-400"
+        >
+          Lv {skillChart.overallLevel}
+        </text>
+        <text
+          x={size / 2}
+          y={size / 2 + 6}
+          textAnchor="middle"
+          className="text-xs font-medium fill-current text-gray-600 dark:text-gray-400"
+        >
+          Overall
+        </text>
+      </svg>      {/* Center display with enhanced info */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+        <div className="text-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow-lg border border-gray-200 dark:border-gray-600">
+          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
             Lv {skillChart.overallLevel}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            {topSkills.length} Skills
+          <div className="text-xs text-gray-600 dark:text-gray-400">
+            {topSkills.length} Active Skills
+          </div>
+          <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+            {Math.round(hexagonData.triangularSegments.reduce((sum, seg) => sum + seg.realProgressPercent, 0) / hexagonData.triangularSegments.length)}% Avg
+          </div>
+        </div>
+      </div>
+      
+      {/* Progress Legend */}
+      <div className="absolute bottom-2 left-2 right-2">
+        <div className="flex justify-center gap-2 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-green-500"></div>
+            <span className="text-gray-600 dark:text-gray-400">80%+</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-blue-500"></div>
+            <span className="text-gray-600 dark:text-gray-400">60%+</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-orange-500"></div>
+            <span className="text-gray-600 dark:text-gray-400">40%+</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-yellow-500"></div>
+            <span className="text-gray-600 dark:text-gray-400">20%+</span>
           </div>
         </div>
       </div>
       
       {/* Debug info in development */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-0 left-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded">
-          Skills: {skillChart.skills.length} | Top: {topSkills.length}
+        <div className="absolute top-0 left-0 bg-black bg-opacity-75 text-white text-xs p-2 rounded max-w-xs">
+          <div className="font-bold mb-1">🎯 Enhanced Skill Progress Debug:</div>
+          {hexagonData.triangularSegments.slice(0, 3).map((seg, i) => (
+            <div key={i} className="mb-1">
+              <span className="text-yellow-300">{seg.skill.name}:</span>
+              <br />
+              <span className="text-green-300">Real: {Math.round(seg.realProgressPercent)}%</span>
+              <span className="text-blue-300 ml-2">Lv: {seg.skill.level}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
