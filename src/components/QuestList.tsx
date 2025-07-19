@@ -373,13 +373,7 @@ const QuestList = () => {
                     >
                       <Edit3 size={18} /> Edit Quest
                     </Button>
-                    <Button
-                      variant="destructive"
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white shadow-md px-4 py-2.5 border border-red-500/50 rounded-xl transition-all hover:shadow-red-500/20 text-sm"
-                      onClick={() => actions.removeQuest(quest.id)}
-                    >
-                      Usuń
-                    </Button>
+
                   </div>
                 </div>
               </Card>

@@ -1,4 +1,4 @@
-import { ActivityLog, GameState } from '../types/game';
+import { GameState } from '../types/game';
 import { SkillChartSystem } from '../utils/characterClasses';
 
 const defaultPlayerSkills = SkillChartSystem.getDefaultSkills();

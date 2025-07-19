@@ -319,8 +319,8 @@ Starting with Energy/Health system redesign, then moving to RPG elements and enh
 
 ### 🌐 Aktualne adresy aplikacji (CORS/backend/frontend)
 
-- **Frontend (prod):** https://jorgenaidhd.github.io/RPG-ADHD-APP/
-- **Backend (prod):** https://rpg-adhd-app-production.up.railway.app/
-- **Frontend (dev):** http://localhost:5173/
-- **Backend (dev):** http://localhost:3001/
-- **Dodatkowe CORS:** http://localhost:3000, http://127.0.0.1:5173
+- **Frontend (prod):** <https://jorgenaidhd.github.io/RPG-ADHD-APP/>
+- **Backend (prod):** <https://rpg-adhd-app-production.up.railway.app/>
+- **Frontend (dev):** <http://localhost:5173/>
+- **Backend (dev):** <http://localhost:3001/>
+- **Dodatkowe CORS:** <http://localhost:3000>, <http://127.0.0.1:5173>
