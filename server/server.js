@@ -474,8 +474,14 @@ app.post('/chat', async (req, res) => {
           },
           text: "" // No text response when a function is called
         });
-      } else if (response.text()) {
-        // If Gemini provides a text response, send it
+      } else if (typeof response === 'string') {
+        // If Gemini returns a plain string, treat it as text
+        return res.json({
+          text: response,
+          functionCall: null
+        });
+      } else if (response && typeof response.text === 'function') {
+        // If Gemini provides a text() method, use it
         return res.json({
           text: response.text(),
           functionCall: null
