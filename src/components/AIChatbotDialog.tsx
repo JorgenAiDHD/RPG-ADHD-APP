@@ -15,11 +15,8 @@ const AIChatbotDialog = () => {
   }, [state.aiChatHistory]);
 
   const getApiUrl = (endpoint: string) => {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://localhost:3001${endpoint}`;
-    }
-    // production: relative path (proxy or same domain)
-    return endpoint;
+    const serverUrl = import.meta.env.VITE_AI_SERVER_URL || "http://localhost:3001";
+    return `${serverUrl}${endpoint}`;
   };
 
   const handleSend = async () => {
