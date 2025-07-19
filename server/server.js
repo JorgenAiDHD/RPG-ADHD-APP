@@ -444,7 +444,7 @@ app.post('/chat', async (req, res) => {
   }
   // If after shifting, no 'user' entry, add a default one
   if (chatHistory.length === 0) {
-    chatHistory.push({ role: 'user', parts: [message || ''] });
+    chatHistory.push({ role: 'user', parts: [{ text: message || '' }] });
   }
 
       const chat = model.startChat({
