@@ -420,7 +420,7 @@ app.post('/chat', async (req, res) => {
       }).filter(Boolean)
     : [
         { role: "user", parts: [
-          `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
+          { text: `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
 
           Zasady Działania:
 
@@ -434,7 +434,8 @@ app.post('/chat', async (req, res) => {
           anxietyLevel: comfortable (jeśli nie wskazano inaczej)
           tags: Wnioskuj na podstawie tytułu/opisu.
           NIE pytaj o potwierdzenie po uzupełnieniu wartości. Po prostu wykonaj zadanie i poinformuj o tym użytkownika.
-          NIE pytaj o to, czy dodać jako osobne questy, jeśli użytkownik prosi o kilka rzeczy. Zawsze dodawaj jako osobne questy, chyba że kontekst jasno wskazuje na jedno złożone zadanie.` ] }
+          NIE pytaj o to, czy dodać jako osobne questy, jeśli użytkownik prosi o kilka rzeczy. Zawsze dodawaj jako osobne questy, chyba że kontekst jasno wskazuje na jedno złożone zadanie.` }
+        ] }
       ];
 
   // Ensure first entry is always 'user' (Gemini API requirement)
@@ -458,6 +459,9 @@ app.post('/chat', async (req, res) => {
       const result = await chat.sendMessage(message);
       const response = result.response;
 
+
+      // Zawsze loguj całą odpowiedź Gemini, nawet jeśli jest pusta lub nieoczekiwana
+      console.log("[Gemini Raw Response]", JSON.stringify(response, null, 2));
       logApiCall("Raw Gemini Response", response);
 
       // Check if Gemini wants to call a function - improved handling
@@ -498,11 +502,17 @@ app.post('/chat', async (req, res) => {
           text: response.text(),
           functionCall: null
         });
-      } else {
-        // Fallback for unexpected responses
-        console.warn("Unexpected response format from Gemini:", response);
+      } else if (response && typeof response.text === 'string') {
+        // If Gemini provides a text property (not a function), use it
         return res.json({
-          text: "Przepraszam, nie zrozumiałem. Czy możesz powtórzyć?",
+          text: response.text,
+          functionCall: null
+        });
+      } else {
+        // Fallback for unexpected or empty responses
+        console.warn("Unexpected or empty response format from Gemini:", response);
+        return res.json({
+          text: "Przepraszam, nie otrzymałem odpowiedzi od AI. Spróbuj ponownie lub zmień zapytanie.",
           functionCall: null
         });
       }
