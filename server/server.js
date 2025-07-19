@@ -403,9 +403,21 @@ app.post('/chat', async (req, res) => {
         tools: [{ function_declarations: functionSchemas }], // Pass the function schemas as tools
       });
 
-  // Use provided history if available, otherwise fallback to system prompt
+
+  // Normalize chat history to Gemini format
   let chatHistory = Array.isArray(history) && history.length > 0
-    ? history.slice() // clone to avoid mutating original
+    ? history.map(entry => {
+        if (entry.parts && Array.isArray(entry.parts)) {
+          // Already in correct format
+          return { role: entry.role, parts: entry.parts };
+        } else if (typeof entry.text === 'string') {
+          // Convert {id, role, text} to {role, parts: [{text}]}
+          return { role: entry.role, parts: [{ text: entry.text }] };
+        } else {
+          // Fallback: skip invalid entries
+          return null;
+        }
+      }).filter(Boolean)
     : [
         { role: "user", parts: [
           `Jesteś moim AI Companionem, zaprojektowanym dla użytkowników z ADHD, aby upraszczać zarządzanie zadaniami i redukować wysiłek poznawczy. Twoim głównym celem jest proaktywne pomaganie mi w organizacji i śledzeniu postępów w grze RPG.
