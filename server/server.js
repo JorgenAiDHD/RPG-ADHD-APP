@@ -407,12 +407,15 @@ app.post('/chat', async (req, res) => {
   // Normalize chat history to Gemini format
   let chatHistory = Array.isArray(history) && history.length > 0
     ? history.map(entry => {
+        // Zamień role 'ai' na 'model' (zgodnie z wymaganiami Gemini)
+        let role = entry.role;
+        if (role === 'ai') role = 'model';
         if (entry.parts && Array.isArray(entry.parts)) {
           // Already in correct format
-          return { role: entry.role, parts: entry.parts };
+          return { role, parts: entry.parts };
         } else if (typeof entry.text === 'string') {
-          // Convert {id, role, text} to {role, parts: [{text}]}
-          return { role: entry.role, parts: [{ text: entry.text }] };
+          // Convert {id, role, text} to {role, parts: [{ text }]}
+          return { role, parts: [{ text: entry.text }] };
         } else {
           // Fallback: skip invalid entries
           return null;
